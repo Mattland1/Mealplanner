@@ -4,8 +4,9 @@ import {
   Download, ExternalLink, FileText, Image, Inbox, Lightbulb, Link2, LockKeyhole,
   LogOut, Minus, Paperclip, Pencil, Plus, Search, ShoppingBasket, Sparkles, Star, Trash2, Upload, WifiOff, X
 } from 'lucide-react'
-import { categories, timeCategoryFor, type AppState, type Category, type Healthiness, type InboxItem, type InboxKind, type Ingredient, type Recipe, type RecipeCollection, type ShoppingListItem, type TimeCategory, type Unit } from './domain/model'
+import { categories, timeCategoryFor, type AppState, type Category, type Healthiness, type InboxItem, type InboxKind, type Ingredient, type MealSlot, type Recipe, type RecipeCollection, type ShoppingListItem, type TimeCategory, type Unit } from './domain/model'
 import { buildShoppingList, isPantryStaple } from './domain/shoppingList'
+import { effectivePlanDayCount, resizePlanDays } from './domain/mealPlan'
 import { createId } from './domain/id'
 import { exportState, importState, loadState, saveState } from './data/repository'
 import { synchronizeState } from './data/sync'
@@ -140,6 +141,19 @@ function App() {
     ) }))
   }
 
+  function assignMeal(id: string, day?: number, slot?: MealSlot) {
+    update((current) => ({ ...current, plan: current.plan.map((meal) =>
+      meal.id === id ? { ...meal, day, slot: day && slot ? slot : undefined } : meal
+    ) }))
+  }
+
+  function changePlanDays(delta: number) {
+    update((current) => {
+      const currentCount = effectivePlanDayCount(current.plan, current.planDayCount)
+      return { ...current, ...resizePlanDays(current.plan, currentCount + delta) }
+    })
+  }
+
   function generate() {
     update((current) => ({ ...current, shoppingList: buildShoppingList(current.recipes, current.plan, current.shoppingList) }))
     setView('shop')
@@ -179,7 +193,8 @@ function App() {
       <main>
         {view === 'plan' && (
           <PlanView state={state} plannedRecipes={plannedRecipes} selectedIds={selectedIds} query={query}
-            setQuery={setQuery} toggleRecipe={toggleRecipe} changeServings={changeServings}
+            setQuery={setQuery} toggleRecipe={toggleRecipe} changeServings={changeServings} assignMeal={assignMeal}
+            changePlanDays={changePlanDays}
             generate={generate} resetWeek={() => setResetOpen(true)} openNewRecipe={() => setRecipeOpen(true)} openRecipe={(recipe) => setSelectedRecipeId(recipe.id)} />
         )}
         {view === 'shop' && (
@@ -263,7 +278,7 @@ function NavButton({ active, onClick, icon, label, badge }: { active: boolean; o
   return <button className={active ? 'active' : ''} onClick={onClick}><span className="nav-icon">{icon}{badge && <b>{badge}</b>}</span><span>{label}</span></button>
 }
 
-function PlanView({ state, plannedRecipes, selectedIds, query, setQuery, toggleRecipe, changeServings, generate, resetWeek, openNewRecipe, openRecipe }: {
+function PlanView({ state, plannedRecipes, selectedIds, query, setQuery, toggleRecipe, changeServings, assignMeal, changePlanDays, generate, resetWeek, openNewRecipe, openRecipe }: {
   state: AppState
   plannedRecipes: { meal: AppState['plan'][number]; recipe: Recipe }[]
   selectedIds: Set<string>
@@ -271,6 +286,8 @@ function PlanView({ state, plannedRecipes, selectedIds, query, setQuery, toggleR
   setQuery: (value: string) => void
   toggleRecipe: (recipe: Recipe) => void
   changeServings: (id: string, delta: number) => void
+  assignMeal: (id: string, day?: number, slot?: MealSlot) => void
+  changePlanDays: (delta: number) => void
   generate: () => void
   resetWeek: () => void
   openNewRecipe: () => void
@@ -285,6 +302,9 @@ function PlanView({ state, plannedRecipes, selectedIds, query, setQuery, toggleR
   const collectionRecipes = state.recipes.filter((recipe) => (recipe.collection ?? 'old-faithful') === collection)
   const availableTags = [...new Set(collectionRecipes.flatMap((recipe) => recipe.tags ?? []))].sort()
   const filtersActive = healthiness !== 'all' || timeCategory !== 'all' || tag !== 'all'
+  const planDayCount = effectivePlanDayCount(state.plan, state.planDayCount)
+  const days = Array.from({ length: planDayCount }, (_, index) => index + 1)
+  const extras = plannedRecipes.filter(({ meal }) => !meal.day || !meal.slot)
   const filtered = state.recipes.filter((recipe) =>
     (recipe.collection ?? 'old-faithful') === collection &&
     `${recipe.name} ${recipe.description} ${(recipe.tags ?? []).join(' ')}`.toLowerCase().includes(query.toLowerCase()) &&
@@ -299,14 +319,28 @@ function PlanView({ state, plannedRecipes, selectedIds, query, setQuery, toggleR
     </section>
 
     {plannedRecipes.length > 0 && <section className="section planned-section">
-      <div className="section-heading"><div><p className="eyebrow">Tonight’s top dogs</p><h2>{plannedRecipes.length} {plannedRecipes.length === 1 ? 'dinner' : 'dinners'} in the bowl</h2></div>
-        <div className="heading-actions"><button className="secondary danger" onClick={resetWeek}><Trash2 size={17}/> Clear the bowls</button><button className="primary" onClick={generate}>Fetch shopping list <ChevronRight size={18}/></button></div></div>
-      <div className="planned-strip">
-        {plannedRecipes.map(({ meal, recipe }) => <article className="planned-card" key={meal.id}>
-          <button className="remove-meal" onClick={() => toggleRecipe(recipe)} aria-label={`Remove ${recipe.name}`}><X size={17}/></button>
-          <span className="meal-emoji">{recipe.emoji}</span><div className="meal-copy"><strong>{recipe.name}</strong><span>{recipe.ingredients.length} ingredients</span></div>
-          <div className="stepper"><button onClick={() => changeServings(meal.id, -1)} aria-label="Fewer servings"><Minus/></button><span><b>{meal.servings}</b><small> servings</small></span><button onClick={() => changeServings(meal.id, 1)} aria-label="More servings"><Plus/></button></div>
-        </article>)}
+      <div className="section-heading"><div><p className="eyebrow">A little structure, no strict schedule</p><h2>{plannedRecipes.length} {plannedRecipes.length === 1 ? 'meal' : 'meals'} in the bowl</h2><p className="section-note">Assign meals when it helps, or leave them in Extras and decide later.</p></div>
+        <div className="heading-actions"><button className="secondary" disabled={planDayCount === 1} onClick={() => changePlanDays(-1)}><Minus size={17}/> Fewer days</button><button className="secondary" onClick={() => changePlanDays(1)}><Plus size={17}/> Add a day</button><button className="secondary danger" onClick={resetWeek}><Trash2 size={17}/> Clear the bowls</button><button className="primary" onClick={generate}>Fetch shopping list <ChevronRight size={18}/></button></div></div>
+      <div className="meal-framework">
+        <div className="plan-days">
+          {days.map((day) => <article className="plan-day" key={day}>
+            <header><span>Day {day}</span></header>
+            {(['lunch', 'dinner'] as const).map((slot) => {
+              const slotMeals = plannedRecipes.filter(({ meal }) => meal.day === day && meal.slot === slot)
+              return <section className="meal-slot" key={slot}>
+                <div className="slot-heading"><strong>{slot === 'lunch' ? 'Lunch' : 'Dinner'}</strong><small>{slotMeals.length ? `${slotMeals.length} planned` : 'Open'}</small></div>
+                {slotMeals.length ? slotMeals.map(({ meal, recipe }) => <PlannedMealCard key={meal.id} meal={meal} recipe={recipe} days={days} assignMeal={assignMeal} changeServings={changeServings} remove={() => toggleRecipe(recipe)} />) : <p className="slot-empty">Nothing assigned — that’s fine.</p>}
+              </section>
+            })}
+          </article>)}
+        </div>
+        <aside className="extras-pool">
+          <div className="extras-heading"><div><p className="eyebrow">Keep it loose</p><h3>Extras &amp; decide later</h3></div><span>{extras.length}</span></div>
+          <p>Meals here still count toward the shopping list. Give them a slot only when you want to.</p>
+          <div className="extras-list">
+            {extras.length ? extras.map(({ meal, recipe }) => <PlannedMealCard key={meal.id} meal={meal} recipe={recipe} days={days} assignMeal={assignMeal} changeServings={changeServings} remove={() => toggleRecipe(recipe)} />) : <div className="extras-empty">Everything has a place for now.</div>}
+          </div>
+        </aside>
       </div>
     </section>}
 
@@ -338,6 +372,28 @@ function PlanView({ state, plannedRecipes, selectedIds, query, setQuery, toggleR
       {!filtered.length && <div className="empty-inline">{query || filtersActive ? 'No recipes caught that scent.' : 'Nothing buried in this recipe stash yet.'}</div>}
     </section>
   </>
+}
+
+function PlannedMealCard({ meal, recipe, days, assignMeal, changeServings, remove }: {
+  meal: AppState['plan'][number]
+  recipe: Recipe
+  days: number[]
+  assignMeal: (id: string, day?: number, slot?: MealSlot) => void
+  changeServings: (id: string, delta: number) => void
+  remove: () => void
+}) {
+  const placement = meal.day && meal.slot ? `${meal.day}:${meal.slot}` : 'extra'
+  return <article className="planned-card">
+    <button className="remove-meal" onClick={remove} aria-label={`Remove ${recipe.name}`}><X size={17}/></button>
+    <span className="meal-emoji">{recipe.emoji}</span>
+    <div className="meal-copy"><strong>{recipe.name}</strong><span>{recipe.ingredients.length} ingredients</span></div>
+    <label className="meal-placement"><span>Place</span><select aria-label={`Place ${recipe.name}`} value={placement} onChange={(event) => {
+      if (event.target.value === 'extra') { assignMeal(meal.id); return }
+      const [day, slot] = event.target.value.split(':')
+      assignMeal(meal.id, Number(day), slot as MealSlot)
+    }}><option value="extra">Extras · decide later</option>{days.flatMap((day) => [<option value={`${day}:lunch`} key={`${day}:lunch`}>Day {day} · Lunch</option>, <option value={`${day}:dinner`} key={`${day}:dinner`}>Day {day} · Dinner</option>])}</select></label>
+    <div className="stepper"><button onClick={() => changeServings(meal.id, -1)} aria-label="Fewer servings"><Minus/></button><span><b>{meal.servings}</b><small> servings</small></span><button onClick={() => changeServings(meal.id, 1)} aria-label="More servings"><Plus/></button></div>
+  </article>
 }
 
 function ShopView({ items, updateItems, addManual, regenerate, resetWeek }: {

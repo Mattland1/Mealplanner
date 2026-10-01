@@ -445,6 +445,7 @@ function mondayIso(): string {
 export const initialState: AppState = {
   recipes: starterRecipes,
   plan: [],
+  planDayCount: 1,
   shoppingList: [],
   weekStart: mondayIso(),
   // Pristine seed data must always lose to a real synchronized household state.

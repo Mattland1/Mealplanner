@@ -8,6 +8,7 @@ export type Unit = 'g' | 'kg' | 'ml' | 'l' | 'piece' | 'cup' | 'tbsp' | 'tsp' | 
 export type RecipeCollection = 'old-faithful' | 'explore'
 export type Healthiness = 'healthy' | 'balanced' | 'indulgent'
 export type TimeCategory = 'fast' | 'medium' | 'long'
+export type MealSlot = 'lunch' | 'dinner'
 
 export function timeCategoryFor(totalTimeMinutes: number): TimeCategory {
   if (totalTimeMinutes <= 30) return 'fast'
@@ -58,6 +59,8 @@ export interface PlannedMeal {
   id: string
   recipeId: string
   servings: number
+  day?: number
+  slot?: MealSlot
 }
 
 export interface ShoppingListItem extends Ingredient {
@@ -71,6 +74,7 @@ export interface AppState {
   recipes: Recipe[]
   plan: PlannedMeal[]
   shoppingList: ShoppingListItem[]
+  planDayCount?: number
   weekStart: string
   updatedAt: string
   catalogVersion?: number
