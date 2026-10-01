@@ -12,9 +12,9 @@ export default defineConfig({
       registerType: 'prompt',
       includeAssets: ['icon.svg'],
       manifest: {
-        name: 'Savor — Weekly Meal Planner',
-        short_name: 'Savor',
-        description: 'Plan meals and take an offline shopping list with you.',
+        name: 'What’s for Gin-ner? — Weekly Meal Planner',
+        short_name: 'Gin-ner?',
+        description: 'Let Ginny fetch your weekly dinners and offline shopping list.',
         theme_color: '#173f35',
         background_color: '#f5f1e8',
         display: 'standalone',

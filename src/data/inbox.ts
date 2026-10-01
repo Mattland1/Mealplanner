@@ -10,7 +10,7 @@ export interface InboxSubmission {
 
 async function errorMessage(response: Response): Promise<string> {
   const body = await response.json().catch(() => ({})) as { error?: string }
-  return body.error ?? `The inbox request failed with status ${response.status}.`
+  return body.error ?? `Ginny dropped the inbox request (status ${response.status}).`
 }
 
 export async function loadInbox(): Promise<InboxItem[]> {

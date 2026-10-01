@@ -1,6 +1,6 @@
 @echo off
 setlocal
-title Deploy Savor Mealplanner
+title Deploy What's for Gin-ner?
 
 cd /d "%~dp0"
 
@@ -12,7 +12,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-echo Building and deploying Savor...
+echo Ginny is fetching a fresh build...
 echo.
 docker compose up --build -d
 if errorlevel 1 (
