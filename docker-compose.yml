@@ -1,0 +1,21 @@
+services:
+  savor:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "4173:4173"
+    environment:
+      SAVOR_PASSWORD: ${SAVOR_PASSWORD:-}
+      SAVOR_SESSION_SECRET: ${SAVOR_SESSION_SECRET:-}
+      SAVOR_COOKIE_SECURE: "false"
+    volumes:
+      - savor-data:/data
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:4173/api/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  savor-data:

@@ -1,0 +1,6 @@
+interface:
+  display_name: "Recipe Addition"
+  short_description: "Turn recipe sources into complete Savor recipes"
+  default_prompt: "Use $recipe-addition to add this recipe to my Savor collection."
+policy:
+  allow_implicit_invocation: true
