@@ -46,7 +46,7 @@ export function exportState(state: AppState): void {
 export async function importState(file: File): Promise<AppState> {
   const parsed = JSON.parse(await file.text()) as AppState
   if (!Array.isArray(parsed.recipes) || !Array.isArray(parsed.plan) || !Array.isArray(parsed.shoppingList)) {
-    throw new Error('This does not look like a Savor backup.')
+    throw new Error('Ginny sniffed this file, but it does not look like a meal-planner backup.')
   }
   return migrateRecipeCatalog(parsed)
 }

@@ -102,7 +102,7 @@ app.get('/api/auth/status', async (request) => ({
 app.post<{ Body: { password?: string } }>('/api/auth/login', async (request, reply) => {
   if (!auth.enabled) return { authenticated: true }
   if (!auth.login(request.body?.password ?? '', reply)) {
-    return reply.code(401).send({ error: 'That household password is not correct.' })
+    return reply.code(401).send({ error: 'That is not the pack password. Try another secret woof.' })
   }
   return { authenticated: true }
 })
@@ -114,20 +114,20 @@ app.post('/api/auth/logout', async (_request, reply) => {
 
 app.addHook('preHandler', async (request, reply) => {
   if ((request.url.startsWith('/api/state') || request.url.startsWith('/api/inbox')) && !auth.authenticated(request)) {
-    return reply.code(401).send({ error: 'Authentication required.' })
+    return reply.code(401).send({ error: 'Ginny needs the pack password first.' })
   }
 })
 
 app.get('/api/state', async (_request, reply) => {
   const current = readState()
-  if (!current) return reply.code(404).send({ error: 'No synchronized state yet.' })
+  if (!current) return reply.code(404).send({ error: 'Ginny has not fetched a synchronized plan yet.' })
   return current
 })
 
 app.put<{ Body: SyncPayload }>('/api/state', async (request, reply) => {
   const { state, expectedRevision } = request.body ?? {}
   if (!isAppState(state) || !Number.isInteger(expectedRevision) || expectedRevision < 0) {
-    return reply.code(400).send({ error: 'Invalid synchronization payload.' })
+    return reply.code(400).send({ error: 'Ginny could not make sense of that synchronization payload.' })
   }
 
   const current = readState()
@@ -182,7 +182,7 @@ app.post('/api/inbox', async (request, reply) => {
       await pipeline(part.file, createWriteStream(target, { flags: 'wx' }))
       if (part.file.truncated) {
         unlinkSync(target)
-        return reply.code(413).send({ error: 'Files may be up to 15 MB.' })
+        return reply.code(413).send({ error: 'That treasure is too heavy. Ginny can carry files up to 15 MB.' })
       }
       upload = {
         fileName: basename(part.filename).slice(0, 240),
@@ -197,7 +197,7 @@ app.post('/api/inbox', async (request, reply) => {
     const note = (fields.note || '').slice(0, 10_000)
     const url = (fields.url || '').slice(0, 2_000)
     if (!title && !note && !url && !upload) {
-      return reply.code(400).send({ error: 'Add a title, note, link, or file.' })
+      return reply.code(400).send({ error: 'Give Ginny something to carry: a title, note, link, or file.' })
     }
 
     const createdAt = new Date().toISOString()
@@ -213,15 +213,15 @@ app.post('/api/inbox', async (request, reply) => {
       try { unlinkSync(join(inboxDirectory, upload.storedName)) } catch { /* already absent */ }
     }
     request.log.error(error)
-    return reply.code(400).send({ error: 'Could not save this inbox item.' })
+    return reply.code(400).send({ error: 'Ginny dropped that item before it reached the box.' })
   }
 })
 
 app.get<{ Params: { id: string } }>('/api/inbox/:id/file', async (request, reply) => {
   const row = readInboxFileStatement.get(request.params.id) as { file_name: string; stored_name: string; mime_type: string } | undefined
-  if (!row?.stored_name) return reply.code(404).send({ error: 'File not found.' })
+  if (!row?.stored_name) return reply.code(404).send({ error: 'Ginny could not sniff out that file.' })
   const path = join(inboxDirectory, row.stored_name)
-  if (!existsSync(path)) return reply.code(404).send({ error: 'File not found.' })
+  if (!existsSync(path)) return reply.code(404).send({ error: 'Ginny could not sniff out that file.' })
   const encodedName = encodeURIComponent(row.file_name).replace(/'/g, '%27')
   reply.header('Content-Disposition', `inline; filename*=UTF-8''${encodedName}`)
   reply.type(row.mime_type || 'application/octet-stream')
@@ -230,7 +230,7 @@ app.get<{ Params: { id: string } }>('/api/inbox/:id/file', async (request, reply
 
 app.delete<{ Params: { id: string } }>('/api/inbox/:id', async (request, reply) => {
   const row = readInboxFileStatement.get(request.params.id) as { stored_name: string | null } | undefined
-  if (!row) return reply.code(404).send({ error: 'Inbox item not found.' })
+  if (!row) return reply.code(404).send({ error: 'That treasure is no longer in Ginny’s drop box.' })
   deleteInboxStatement.run(request.params.id)
   if (row.stored_name) {
     try { unlinkSync(join(inboxDirectory, row.stored_name)) } catch { /* metadata is already removed */ }

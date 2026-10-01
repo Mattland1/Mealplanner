@@ -7,7 +7,7 @@ import './styles.css'
 let activateUpdate: (reloadPage?: boolean) => Promise<void> = async () => undefined
 activateUpdate = registerSW({
   onNeedRefresh() {
-    if (window.confirm('A new version of Savor is ready. Reload now?')) void activateUpdate(true)
+    if (window.confirm('Ginny fetched a fresh version. Reload now?')) void activateUpdate(true)
   }
 })
 

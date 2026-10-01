@@ -5,7 +5,7 @@ export interface AuthStatus {
 
 export async function getAuthStatus(): Promise<AuthStatus> {
   const response = await fetch('/api/auth/status', { headers: { accept: 'application/json' } })
-  if (!response.ok) throw new Error('The home server is unavailable.')
+  if (!response.ok) throw new Error('Ginny cannot reach the home server.')
   return response.json() as Promise<AuthStatus>
 }
 
@@ -17,7 +17,7 @@ export async function login(password: string): Promise<void> {
   })
   if (!response.ok) {
     const body = await response.json().catch(() => ({})) as { error?: string }
-    throw new Error(body.error ?? 'Could not sign in.')
+    throw new Error(body.error ?? 'Ginny could not open the doggy door.')
   }
 }
 
