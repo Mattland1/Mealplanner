@@ -319,27 +319,21 @@ function PlanView({ state, plannedRecipes, selectedIds, query, setQuery, toggleR
     </section>
 
     {plannedRecipes.length > 0 && <section className="section planned-section">
-      <div className="section-heading"><div><p className="eyebrow">A little structure, no strict schedule</p><h2>{plannedRecipes.length} {plannedRecipes.length === 1 ? 'meal' : 'meals'} in the bowl</h2><p className="section-note">Assign meals when it helps, or leave them in Extras and decide later.</p></div>
-        <div className="heading-actions"><button className="secondary" disabled={planDayCount === 1} onClick={() => changePlanDays(-1)}><Minus size={17}/> Fewer days</button><button className="secondary" onClick={() => changePlanDays(1)}><Plus size={17}/> Add a day</button><button className="secondary danger" onClick={resetWeek}><Trash2 size={17}/> Clear the bowls</button><button className="primary" onClick={generate}>Fetch shopping list <ChevronRight size={18}/></button></div></div>
-      <div className="meal-framework">
-        <div className="plan-days">
-          {days.map((day) => <article className="plan-day" key={day}>
-            <header><span>Day {day}</span></header>
-            {(['lunch', 'dinner'] as const).map((slot) => {
-              const slotMeals = plannedRecipes.filter(({ meal }) => meal.day === day && meal.slot === slot)
-              return <section className="meal-slot" key={slot}>
-                <div className="slot-heading"><strong>{slot === 'lunch' ? 'Lunch' : 'Dinner'}</strong><small>{slotMeals.length ? `${slotMeals.length} planned` : 'Open'}</small></div>
-                {slotMeals.length ? slotMeals.map(({ meal, recipe }) => <PlannedMealCard key={meal.id} meal={meal} recipe={recipe} days={days} assignMeal={assignMeal} changeServings={changeServings} remove={() => toggleRecipe(recipe)} />) : <p className="slot-empty">Nothing assigned — that’s fine.</p>}
-              </section>
-            })}
-          </article>)}
+      <div className="section-heading"><div><p className="eyebrow">Tonight’s top dogs</p><h2>{plannedRecipes.length} {plannedRecipes.length === 1 ? 'meal' : 'meals'} in the bowl</h2><p className="section-note">A loose shortlist first; timing is optional.</p></div>
+        <div className="heading-actions"><button className="secondary danger" onClick={resetWeek}><Trash2 size={17}/> Clear the bowls</button><button className="primary" onClick={generate}>Fetch shopping list <ChevronRight size={18}/></button></div></div>
+      <div className="planned-layout">
+        <div className="planned-strip">
+          {plannedRecipes.map(({ meal, recipe }) => <PlannedMealCard key={meal.id} meal={meal} recipe={recipe} days={days} assignMeal={assignMeal} changeServings={changeServings} remove={() => toggleRecipe(recipe)} />)}
         </div>
-        <aside className="extras-pool">
-          <div className="extras-heading"><div><p className="eyebrow">Keep it loose</p><h3>Extras &amp; decide later</h3></div><span>{extras.length}</span></div>
-          <p>Meals here still count toward the shopping list. Give them a slot only when you want to.</p>
-          <div className="extras-list">
-            {extras.length ? extras.map(({ meal, recipe }) => <PlannedMealCard key={meal.id} meal={meal} recipe={recipe} days={days} assignMeal={assignMeal} changeServings={changeServings} remove={() => toggleRecipe(recipe)} />) : <div className="extras-empty">Everything has a place for now.</div>}
+        <aside className="schedule-overview" aria-label="Meal timing overview">
+          <header><div><p className="eyebrow">Optional outline</p><h3>When’s what?</h3></div><div className="day-controls"><button disabled={planDayCount === 1} onClick={() => changePlanDays(-1)} aria-label="Remove the last day" title="Fewer days"><Minus/></button><span>{planDayCount} {planDayCount === 1 ? 'day' : 'days'}</span><button onClick={() => changePlanDays(1)} aria-label="Add another day" title="Add a day"><Plus/></button></div></header>
+          <div className="schedule-list">
+            {days.map((day) => <section className="schedule-day" key={day}><strong>Day {day}</strong>{(['lunch', 'dinner'] as const).map((slot) => {
+              const names = plannedRecipes.filter(({ meal }) => meal.day === day && meal.slot === slot).map(({ recipe }) => recipe.name)
+              return <div key={slot}><span>{slot === 'lunch' ? 'Lunch' : 'Dinner'}</span><p className={names.length ? '' : 'open-slot'}>{names.length ? names.join(', ') : 'Open'}</p></div>
+            })}</section>)}
           </div>
+          <div className="schedule-extras"><span>Extras</span><p>{extras.length ? extras.map(({ recipe }) => recipe.name).join(', ') : 'Nothing waiting'}</p></div>
         </aside>
       </div>
     </section>}
