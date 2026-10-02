@@ -8,6 +8,7 @@ services:
       SAVOR_PASSWORD: ${SAVOR_PASSWORD:-}
       SAVOR_SESSION_SECRET: ${SAVOR_SESSION_SECRET:-}
       SAVOR_COOKIE_SECURE: "false"
+      SAVOR_UPLOAD_QUOTA_BYTES: ${SAVOR_UPLOAD_QUOTA_BYTES:-524288000}
     volumes:
       - savor-data:/data
     healthcheck:

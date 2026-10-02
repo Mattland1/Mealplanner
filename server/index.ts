@@ -4,11 +4,13 @@ import fastifyMultipart from '@fastify/multipart'
 import fastifyStatic from '@fastify/static'
 import { randomUUID } from 'node:crypto'
 import { DatabaseSync } from 'node:sqlite'
-import { createReadStream, createWriteStream, existsSync, mkdirSync, unlinkSync } from 'node:fs'
-import { basename, dirname, extname, join, resolve } from 'node:path'
+import { createReadStream, createWriteStream, existsSync, mkdirSync, renameSync, unlinkSync } from 'node:fs'
+import { basename, dirname, join, resolve } from 'node:path'
 import { pipeline } from 'node:stream/promises'
 import { fileURLToPath } from 'node:url'
 import { createHouseholdAuth } from './auth.js'
+import { enforceRateLimit } from './rateLimit.js'
+import { inspectUpload } from './uploads.js'
 
 interface SyncPayload {
   state: unknown
@@ -70,6 +72,11 @@ const insertInboxStatement = database.prepare(
 const deleteInboxStatement = database.prepare(
   'DELETE FROM inbox_entries WHERE id = ?'
 )
+const inboxStorageStatement = database.prepare(
+  'SELECT COALESCE(SUM(size), 0) AS total FROM inbox_entries'
+)
+
+const uploadQuotaBytes = Number(process.env.SAVOR_UPLOAD_QUOTA_BYTES ?? 500 * 1024 * 1024)
 
 function readState() {
   const row = readStatement.get('default') as { payload: string; revision: number; updated_at: string } | undefined
@@ -92,6 +99,18 @@ await app.register(fastifyMultipart, {
 })
 const auth = createHouseholdAuth()
 
+app.addHook('onSend', async (request, reply, payload) => {
+  reply.header('Content-Security-Policy', "default-src 'self'; img-src 'self' data: blob: https:; style-src 'self'; script-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'")
+  reply.header('Cross-Origin-Opener-Policy', 'same-origin')
+  reply.header('Cross-Origin-Resource-Policy', 'same-origin')
+  reply.header('Permissions-Policy', 'camera=(), microphone=(), geolocation=()')
+  reply.header('Referrer-Policy', 'no-referrer')
+  reply.header('X-Content-Type-Options', 'nosniff')
+  reply.header('X-Frame-Options', 'DENY')
+  if (request.url.startsWith('/api/')) reply.header('Cache-Control', 'no-store')
+  return payload
+})
+
 app.get('/api/health', async () => ({ ok: true }))
 
 app.get('/api/auth/status', async (request) => ({
@@ -100,6 +119,7 @@ app.get('/api/auth/status', async (request) => ({
 }))
 
 app.post<{ Body: { password?: string } }>('/api/auth/login', async (request, reply) => {
+  if (!enforceRateLimit(request, reply, 'login', 10, 15 * 60_000)) return reply
   if (!auth.enabled) return { authenticated: true }
   if (!auth.login(request.body?.password ?? '', reply)) {
     return reply.code(401).send({ error: 'That is not the pack password. Try another secret woof.' })
@@ -125,6 +145,7 @@ app.get('/api/state', async (_request, reply) => {
 })
 
 app.put<{ Body: SyncPayload }>('/api/state', async (request, reply) => {
+  if (!enforceRateLimit(request, reply, 'state-write', 120, 60_000)) return reply
   const { state, expectedRevision } = request.body ?? {}
   if (!isAppState(state) || !Number.isInteger(expectedRevision) || expectedRevision < 0) {
     return reply.code(400).send({ error: 'Ginny could not make sense of that synchronization payload.' })
@@ -165,9 +186,11 @@ app.get('/api/inbox', async () =>
 )
 
 app.post('/api/inbox', async (request, reply) => {
+  if (!enforceRateLimit(request, reply, 'inbox-upload', 30, 60 * 60_000)) return reply
   const fields: Record<string, string> = {}
   const id = randomUUID()
   let upload: { fileName: string; storedName: string; mimeType: string; size: number } | null = null
+  let temporaryPath: string | null = null
 
   try {
     for await (const part of request.parts()) {
@@ -176,19 +199,36 @@ app.post('/api/inbox', async (request, reply) => {
         continue
       }
 
-      const extension = extname(part.filename).slice(0, 12)
-      const storedName = `${id}${extension}`
-      const target = join(inboxDirectory, storedName)
-      await pipeline(part.file, createWriteStream(target, { flags: 'wx' }))
+      const fileName = basename(part.filename).slice(0, 240)
+      temporaryPath = join(inboxDirectory, `${id}.upload`)
+      await pipeline(part.file, createWriteStream(temporaryPath, { flags: 'wx' }))
       if (part.file.truncated) {
-        unlinkSync(target)
+        unlinkSync(temporaryPath)
+        temporaryPath = null
         return reply.code(413).send({ error: 'That treasure is too heavy. Ginny can carry files up to 15 MB.' })
       }
+
+      const inspected = await inspectUpload(temporaryPath, fileName)
+      if (!inspected) {
+        unlinkSync(temporaryPath)
+        temporaryPath = null
+        return reply.code(415).send({ error: 'Ginny only accepts genuine photos, PDFs, and UTF-8 text or Markdown files.' })
+      }
+      const size = part.file.bytesRead
+      const stored = inboxStorageStatement.get() as { total: number }
+      if (!Number.isFinite(uploadQuotaBytes) || uploadQuotaBytes < 1 || stored.total + size > uploadQuotaBytes) {
+        unlinkSync(temporaryPath)
+        temporaryPath = null
+        return reply.code(507).send({ error: 'Ginny’s drop box is full. Remove an older attachment before adding another.' })
+      }
+      const storedName = `${id}${inspected.extension}`
+      renameSync(temporaryPath, join(inboxDirectory, storedName))
+      temporaryPath = null
       upload = {
-        fileName: basename(part.filename).slice(0, 240),
+        fileName,
         storedName,
-        mimeType: part.mimetype || 'application/octet-stream',
-        size: part.file.bytesRead
+        mimeType: inspected.mimeType,
+        size
       }
     }
 
@@ -209,6 +249,9 @@ app.post('/api/inbox', async (request, reply) => {
     const created = (listInboxStatement.all() as Record<string, unknown>[]).find((row) => row.id === id)
     return reply.code(201).send(presentInboxEntry(created!))
   } catch (error) {
+    if (temporaryPath) {
+      try { unlinkSync(temporaryPath) } catch { /* already absent */ }
+    }
     if (upload?.storedName) {
       try { unlinkSync(join(inboxDirectory, upload.storedName)) } catch { /* already absent */ }
     }
@@ -223,12 +266,15 @@ app.get<{ Params: { id: string } }>('/api/inbox/:id/file', async (request, reply
   const path = join(inboxDirectory, row.stored_name)
   if (!existsSync(path)) return reply.code(404).send({ error: 'Ginny could not sniff out that file.' })
   const encodedName = encodeURIComponent(row.file_name).replace(/'/g, '%27')
-  reply.header('Content-Disposition', `inline; filename*=UTF-8''${encodedName}`)
+  const inlineImageTypes = new Set(['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/bmp', 'image/heic'])
+  const disposition = inlineImageTypes.has(row.mime_type) ? 'inline' : 'attachment'
+  reply.header('Content-Disposition', `${disposition}; filename*=UTF-8''${encodedName}`)
   reply.type(row.mime_type || 'application/octet-stream')
   return reply.send(createReadStream(path))
 })
 
 app.delete<{ Params: { id: string } }>('/api/inbox/:id', async (request, reply) => {
+  if (!enforceRateLimit(request, reply, 'inbox-delete', 120, 60_000)) return reply
   const row = readInboxFileStatement.get(request.params.id) as { stored_name: string | null } | undefined
   if (!row) return reply.code(404).send({ error: 'That treasure is no longer in Ginny’s drop box.' })
   deleteInboxStatement.run(request.params.id)

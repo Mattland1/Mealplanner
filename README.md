@@ -65,6 +65,12 @@ from a phone to the laptop. Each item can contain a link, 10,000-character note,
 one attachment up to 15 MB. Inbox data requires a connection to the home server; it is
 not stored only in the phone browser.
 
+Attachments are checked from their file contents rather than trusting the supplied
+file name or media type. JPEG, PNG, GIF, WebP, BMP, HEIC, PDF, UTF-8 text, and Markdown
+are accepted. Potentially active formats such as SVG are rejected, and non-image files
+are downloaded instead of rendered in the app's origin. Total attachment storage is
+limited to 500 MiB by default; set `SAVOR_UPLOAD_QUOTA_BYTES` to choose another limit.
+
 This is an in-app inbox. Registering Savor in Android or iOS's native Share menu is a
 separate enhancement that requires an installed HTTPS PWA and varies by mobile OS.
 
@@ -72,6 +78,11 @@ Authentication is optional for `pnpm start`: omit `SAVOR_PASSWORD` for local
 development. When a password is set, `SAVOR_SESSION_SECRET` must be a different random
 string of at least 32 characters. The default Compose configuration intentionally
 leaves authentication disabled because plain HTTP does not encrypt passwords.
+
+The server applies browser security headers and per-client write/upload rate limits.
+The production container runs the Node process as an unprivileged user and excludes
+development dependencies. Keep TCP port 4173 limited to a trusted private LAN: do not
+forward it through the router, and allow it only on the Windows Private firewall profile.
 
 ### Phone limitations
 
