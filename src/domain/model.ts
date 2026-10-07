@@ -67,10 +67,15 @@ export interface ShoppingListItem extends Ingredient {
   atHome?: boolean
 }
 
+export interface ShoppingCatalogItem extends Ingredient {
+  custom?: boolean
+}
+
 export interface AppState {
   recipes: Recipe[]
   plan: PlannedMeal[]
   shoppingList: ShoppingListItem[]
+  extraShoppingItems?: ShoppingCatalogItem[]
   weekStart: string
   updatedAt: string
   catalogVersion?: number

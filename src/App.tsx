@@ -4,8 +4,9 @@ import {
   Download, ExternalLink, FileText, Image, Inbox, Lightbulb, Link2, LockKeyhole,
   LogOut, Minus, Paperclip, Pencil, Plus, Search, ShoppingBasket, Sparkles, Sprout, Star, Trash2, Upload, WifiOff, X
 } from 'lucide-react'
-import { categories, timeCategoryFor, type AppState, type Category, type Healthiness, type InboxItem, type InboxKind, type Ingredient, type Recipe, type RecipeCollection, type ShoppingListItem, type TimeCategory, type Unit } from './domain/model'
+import { categories, timeCategoryFor, type AppState, type Category, type Healthiness, type InboxItem, type InboxKind, type Ingredient, type Recipe, type RecipeCollection, type ShoppingCatalogItem, type ShoppingListItem, type TimeCategory, type Unit } from './domain/model'
 import { buildShoppingList, isPantryStaple } from './domain/shoppingList'
+import { addCustomCatalogItem, preparedShoppingItems, sameCatalogName } from './domain/shoppingCatalog'
 import { createId } from './domain/id'
 import { exportState, importState, loadState, saveState } from './data/repository'
 import { synchronizeState } from './data/sync'
@@ -229,9 +230,16 @@ function App() {
       {!editingRecipe && selectedRecipe && <RecipeDetailsDialog recipe={selectedRecipe} planned={selectedIds.has(selectedRecipe.id)} close={() => setSelectedRecipeId(null)} edit={() => {
         setEditingRecipe(selectedRecipe)
       }} togglePlan={() => toggleRecipe(selectedRecipe)} />}
-      {manualOpen && <ManualItemDialog close={() => setManualOpen(false)} save={(item) => {
-        update((current) => ({ ...current, shoppingList: [...current.shoppingList, item] }))
+      {manualOpen && <ManualItemDialog savedItems={state.extraShoppingItems ?? []} close={() => setManualOpen(false)} save={(item, saveForLater) => {
+        update((current) => ({
+          ...current,
+          shoppingList: [...current.shoppingList, item],
+          extraShoppingItems: saveForLater
+            ? addCustomCatalogItem(current.extraShoppingItems ?? [], { id: createId(), name: item.name, quantity: item.quantity, unit: item.unit, category: item.category })
+            : current.extraShoppingItems ?? []
+        }))
         setManualOpen(false)
+        announce(saveForLater ? 'Item added and saved to your extras' : 'Item added to the shopping list')
       }} />}
       {resetOpen && <ResetWeekDialog close={() => setResetOpen(false)} reset={resetWeek}
         plannedMeals={state.plan.length} shoppingItems={state.shoppingList.length} />}
@@ -609,12 +617,37 @@ function RecipeDialog({ recipe, close, save }: { recipe?: Recipe; close: () => v
   </DialogFrame>
 }
 
-function ManualItemDialog({ close, save }: { close: () => void; save: (item: ShoppingListItem) => void }) {
+function ManualItemDialog({ savedItems, close, save }: { savedItems: ShoppingCatalogItem[]; close: () => void; save: (item: ShoppingListItem, saveForLater: boolean) => void }) {
   const [name, setName] = useState('')
   const [quantity, setQuantity] = useState(1)
   const [unit, setUnit] = useState<Unit>('piece')
   const [category, setCategory] = useState<Category>('Other')
-  return <DialogFrame title="Add shopping item" close={close}><label><span>Item name</span><input autoFocus value={name} onChange={(e) => setName(e.target.value)} placeholder="Coffee beans"/></label><div className="form-grid three"><label><span>Quantity</span><input type="number" min="0.01" step="0.25" value={quantity} onChange={(e) => setQuantity(Number(e.target.value))}/></label><label><span>Unit</span><select value={unit} onChange={(e) => setUnit(e.target.value as Unit)}>{units.map((candidate) => <option key={candidate}>{candidate}</option>)}</select></label><label><span>Category</span><select value={category} onChange={(e) => setCategory(e.target.value as Category)}>{categories.map((candidate) => <option key={candidate}>{candidate}</option>)}</select></label></div><footer><button className="secondary" onClick={close}>Cancel</button><button className="primary" disabled={!name.trim()} onClick={() => save({ id: createId(), name: name.trim(), quantity, unit, category, checked: false, manual: true, sources: [] })}>Add to shopping list</button></footer></DialogFrame>
+  const [query, setQuery] = useState('')
+  const [saveForLater, setSaveForLater] = useState(false)
+  const catalogue = [...savedItems, ...preparedShoppingItems.filter((prepared) => !savedItems.some((saved) => sameCatalogName(saved.name, prepared.name)))]
+  const filtered = catalogue.filter((item) => item.name.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase()))
+  const matchesCatalogue = catalogue.some((item) => sameCatalogName(item.name, name))
+
+  function choose(item: ShoppingCatalogItem) {
+    setName(item.name)
+    setQuantity(item.quantity)
+    setUnit(item.unit)
+    setCategory(item.category)
+    setSaveForLater(false)
+  }
+
+  return <DialogFrame title="Add shopping item" close={close}>
+    <section className="catalogue-picker" aria-labelledby="catalogue-title">
+      <div className="catalogue-heading"><div><h3 id="catalogue-title">Choose a regular</h3><p>Household basics, treats, and your saved extras.</p></div><div className="catalogue-search"><Search/><input autoFocus value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Find an item" aria-label="Find a catalogue item"/></div></div>
+      <div className="catalogue-grid">{filtered.map((item) => <button type="button" className={sameCatalogName(item.name, name) ? 'selected' : ''} key={item.id} onClick={() => choose(item)}><span>{item.name}</span><small>{item.custom ? 'Your extra' : item.category}</small></button>)}</div>
+      {!filtered.length && <p className="catalogue-empty">No match yet — add it as a custom item below.</p>}
+    </section>
+    <div className="custom-item-divider"><span>Item details</span></div>
+    <label><span>Item name</span><input value={name} onChange={(event) => { setName(event.target.value); if (!sameCatalogName(event.target.value, name)) setSaveForLater(false) }} placeholder="Birthday candles"/></label>
+    <div className="form-grid three"><label><span>Quantity</span><input type="number" min="0.01" step="0.25" value={quantity} onChange={(e) => setQuantity(Number(e.target.value))}/></label><label><span>Unit</span><select value={unit} onChange={(e) => setUnit(e.target.value as Unit)}>{units.map((candidate) => <option key={candidate}>{candidate}</option>)}</select></label><label><span>Category</span><select value={category} onChange={(e) => setCategory(e.target.value as Category)}>{categories.map((candidate) => <option key={candidate}>{candidate}</option>)}</select></label></div>
+    <label className={`save-extra-toggle ${matchesCatalogue ? 'disabled' : ''}`}><input type="checkbox" checked={saveForLater && !matchesCatalogue} disabled={!name.trim() || matchesCatalogue} onChange={(event) => setSaveForLater(event.target.checked)}/><span><strong>Save to my extra items</strong><small>{matchesCatalogue ? 'This item is already in the catalogue.' : 'Keep these details so it is ready to choose next time.'}</small></span></label>
+    <footer><button className="secondary" onClick={close}>Cancel</button><button className="primary" disabled={!name.trim() || quantity <= 0} onClick={() => save({ id: createId(), name: name.trim(), quantity, unit, category, checked: false, manual: true, sources: [] }, saveForLater && !matchesCatalogue)}>Add to shopping list</button></footer>
+  </DialogFrame>
 }
 
 export default App
