@@ -90,6 +90,8 @@ export interface WeekHistoryEntry {
   completedAt: string
   recipes: WeekHistoryRecipe[]
   purchasedItems: WeekHistoryPurchase[]
+  /** Manual shopping-list additions, whether or not they were checked off. */
+  extraItems?: WeekHistoryPurchase[]
 }
 
 export interface AppState {

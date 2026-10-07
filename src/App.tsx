@@ -254,7 +254,8 @@ function App() {
         announce(saveForLater ? 'Item added and saved to your extras' : 'Item added to the shopping list')
       }} />}
       {resetOpen && <ResetWeekDialog close={() => setResetOpen(false)} finish={finishWeek} discard={discardWeek}
-        plannedMeals={state.plan.length} purchasedItems={state.shoppingList.filter((item) => item.checked && !item.atHome).length} />}
+        plannedMeals={state.plan.length} purchasedItems={state.shoppingList.filter((item) => item.checked && !item.atHome).length}
+        addedExtras={state.shoppingList.filter((item) => item.manual).length} />}
       {inboxOpen && <InboxDialog close={() => setInboxOpen(false)} save={async (submission) => {
         const item = await submitInboxItem(submission)
         setInboxItems((current) => [item, ...current])
@@ -567,17 +568,18 @@ function InboxDialog({ close, save }: { close: () => void; save: (submission: In
   </form></DialogFrame>
 }
 
-function ResetWeekDialog({ close, finish, discard, plannedMeals, purchasedItems }: {
+function ResetWeekDialog({ close, finish, discard, plannedMeals, purchasedItems, addedExtras }: {
   close: () => void
   finish: () => void
   discard: () => void
   plannedMeals: number
   purchasedItems: number
+  addedExtras: number
 }) {
   return <div className="modal-backdrop" onMouseDown={(event) => event.target === event.currentTarget && close()}>
     <section className="dialog confirm-dialog" role="alertdialog" aria-modal="true" aria-labelledby="reset-week-title" aria-describedby="reset-week-description">
       <header><div><p className="eyebrow">Start fresh</p><h2 id="reset-week-title">Finish this week?</h2></div><button className="icon-button" onClick={close} aria-label="Close"><X/></button></header>
-      <p className="dialog-copy" id="reset-week-description">Save {plannedMeals} planned {plannedMeals === 1 ? 'recipe' : 'recipes'} and {purchasedItems} checked {purchasedItems === 1 ? 'purchase' : 'purchases'} to your household history, then clear the current week.</p>
+      <p className="dialog-copy" id="reset-week-description">Save {plannedMeals} planned {plannedMeals === 1 ? 'recipe' : 'recipes'}, {purchasedItems} checked {purchasedItems === 1 ? 'purchase' : 'purchases'}, and {addedExtras} added {addedExtras === 1 ? 'extra' : 'extras'} to your household history, then clear the current week.</p>
       <p className="dialog-hint">Still testing? Discarding clears the week without changing any counters.</p>
       <footer className="finish-actions"><button className="text-button danger-text" onClick={discard}><Trash2 size={17}/> Discard without counting</button><span/><button className="secondary" onClick={close}>Cancel</button><button className="primary" onClick={finish}><Check size={17}/> Finish &amp; save history</button></footer>
     </section>

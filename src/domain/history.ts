@@ -22,7 +22,10 @@ export function createWeekHistoryEntry(
     }),
     purchasedItems: state.shoppingList
       .filter((item) => item.checked && !item.atHome)
-      .map((item) => ({ name: item.name, quantity: item.quantity, unit: item.unit, manual: item.manual }))
+      .map((item) => ({ name: item.name, quantity: item.quantity, unit: item.unit, manual: item.manual })),
+    extraItems: state.shoppingList
+      .filter((item) => item.manual)
+      .map((item) => ({ name: item.name, quantity: item.quantity, unit: item.unit, manual: true }))
   }
 }
 
@@ -40,7 +43,10 @@ export function recipeUsage(history: WeekHistoryEntry[] = []): UsageCount[] {
 export function extraItemUsage(history: WeekHistoryEntry[] = []): UsageCount[] {
   const counts = new Map<string, UsageCount>()
   for (const week of history) {
-    for (const item of week.purchasedItems.filter((purchase) => purchase.manual)) {
+    // Older history entries predate extraItems, so retain their checked manual
+    // purchases as the best available record without double-counting new entries.
+    const extras = week.extraItems ?? week.purchasedItems.filter((purchase) => purchase.manual)
+    for (const item of extras) {
       const id = item.name.trim().toLocaleLowerCase()
       const current = counts.get(id)
       counts.set(id, { id, name: item.name, count: (current?.count ?? 0) + 1 })

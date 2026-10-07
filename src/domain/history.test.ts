@@ -15,10 +15,14 @@ const state: AppState = {
 }
 
 describe('week history', () => {
-  it('snapshots the final plan and only checked purchases', () => {
+  it('snapshots checked purchases and every manually added extra', () => {
     const entry = createWeekHistoryEntry(state, 'history-1', '2026-10-07T13:00:00.000Z')
     expect(entry.recipes).toEqual([{ recipeId: 'soup', name: 'Soup', servings: 2 }])
     expect(entry.purchasedItems).toEqual([{ name: 'Chocolate', quantity: 1, unit: 'piece', manual: true }])
+    expect(entry.extraItems).toEqual([
+      { name: 'Chocolate', quantity: 1, unit: 'piece', manual: true },
+      { name: 'Batteries', quantity: 1, unit: 'pack', manual: true }
+    ])
   })
 
   it('ranks recipes and manual extras across finished weeks', () => {
@@ -27,13 +31,25 @@ describe('week history', () => {
       ...first,
       id: 'history-2',
       recipes: [...first.recipes, { recipeId: 'pasta', name: 'Pasta', servings: 4 }],
-      purchasedItems: [{ name: 'chocolate', quantity: 2, unit: 'piece', manual: true }]
+      purchasedItems: [{ name: 'chocolate', quantity: 2, unit: 'piece', manual: true }],
+      extraItems: [{ name: 'chocolate', quantity: 2, unit: 'piece', manual: true }]
     }
     expect(recipeUsage([first, second])).toEqual([
       { id: 'soup', name: 'Soup', count: 2 },
       { id: 'pasta', name: 'Pasta', count: 1 }
     ])
-    expect(extraItemUsage([first, second])).toEqual([{ id: 'chocolate', name: 'chocolate', count: 2 }])
+    expect(extraItemUsage([first, second])).toEqual([
+      { id: 'chocolate', name: 'chocolate', count: 2 },
+      { id: 'batteries', name: 'Batteries', count: 1 }
+    ])
+  })
+
+  it('keeps ranking checked manual purchases from older history entries', () => {
+    const legacy: WeekHistoryEntry = {
+      id: 'legacy', weekStart: '2026-09-28', completedAt: '2026-10-04T18:00:00.000Z', recipes: [],
+      purchasedItems: [{ name: 'Coffee', quantity: 1, unit: 'pack', manual: true }]
+    }
+    expect(extraItemUsage([legacy])).toEqual([{ id: 'coffee', name: 'Coffee', count: 1 }])
   })
 
   it('sorts by usage while preserving the curated order for ties', () => {
