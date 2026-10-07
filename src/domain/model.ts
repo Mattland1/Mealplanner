@@ -71,11 +71,33 @@ export interface ShoppingCatalogItem extends Ingredient {
   custom?: boolean
 }
 
+export interface WeekHistoryRecipe {
+  recipeId: string
+  name: string
+  servings: number
+}
+
+export interface WeekHistoryPurchase {
+  name: string
+  quantity: number
+  unit: Unit
+  manual: boolean
+}
+
+export interface WeekHistoryEntry {
+  id: string
+  weekStart: string
+  completedAt: string
+  recipes: WeekHistoryRecipe[]
+  purchasedItems: WeekHistoryPurchase[]
+}
+
 export interface AppState {
   recipes: Recipe[]
   plan: PlannedMeal[]
   shoppingList: ShoppingListItem[]
   extraShoppingItems?: ShoppingCatalogItem[]
+  weekHistory?: WeekHistoryEntry[]
   weekStart: string
   updatedAt: string
   catalogVersion?: number

@@ -4,7 +4,7 @@ import {
   Download, ExternalLink, FileText, Image, Inbox, Lightbulb, Link2, LockKeyhole,
   LogOut, Minus, Paperclip, Pencil, Plus, Search, ShoppingBasket, Sparkles, Sprout, Star, Trash2, Upload, WifiOff, X
 } from 'lucide-react'
-import { categories, timeCategoryFor, type AppState, type Category, type Healthiness, type InboxItem, type InboxKind, type Ingredient, type Recipe, type RecipeCollection, type ShoppingCatalogItem, type ShoppingListItem, type TimeCategory, type Unit } from './domain/model'
+import { categories, timeCategoryFor, type AppState, type Category, type Healthiness, type InboxItem, type InboxKind, type Ingredient, type Recipe, type RecipeCollection, type ShoppingCatalogItem, type ShoppingListItem, type TimeCategory, type Unit, type WeekHistoryEntry } from './domain/model'
 import { buildShoppingList, isPantryStaple } from './domain/shoppingList'
 import { addCustomCatalogItem, preparedShoppingItems, sameCatalogName } from './domain/shoppingCatalog'
 import { createId } from './domain/id'
@@ -14,6 +14,7 @@ import { getAuthStatus, login, logout } from './data/auth'
 import { deleteInboxItem, inboxFileUrl, loadInbox, submitInboxItem, type InboxSubmission } from './data/inbox'
 import { copyText } from './data/clipboard'
 import { formatShoppingListForClipboard } from './domain/shoppingListText'
+import { createWeekHistoryEntry, extraItemUsage, recipeUsage, sortByUsage } from './domain/history'
 
 type View = 'plan' | 'shop' | 'recipes' | 'inbox'
 const units: Unit[] = ['g', 'kg', 'ml', 'l', 'piece', 'cup', 'tbsp', 'tsp', 'pack']
@@ -149,10 +150,21 @@ function App() {
     announce('Shopping list ready')
   }
 
-  function resetWeek() {
+  function discardWeek() {
     update((current) => ({ ...current, plan: [], shoppingList: [] }))
     setResetOpen(false)
-    announce('Week cleared')
+    announce('Week discarded without changing your history')
+  }
+
+  function finishWeek() {
+    update((current) => ({
+      ...current,
+      weekHistory: [...(current.weekHistory ?? []), createWeekHistoryEntry(current, createId(), new Date().toISOString())],
+      plan: [],
+      shoppingList: []
+    }))
+    setResetOpen(false)
+    announce('Week saved to your history')
   }
 
   async function restore(file: File | undefined) {
@@ -181,7 +193,7 @@ function App() {
 
       <main>
         {view === 'plan' && (
-          <PlanView state={state} plannedRecipes={plannedRecipes} selectedIds={selectedIds} query={query}
+          <PlanView state={state} history={state.weekHistory ?? []} plannedRecipes={plannedRecipes} selectedIds={selectedIds} query={query}
             setQuery={setQuery} toggleRecipe={toggleRecipe} changeServings={changeServings}
             generate={generate} resetWeek={() => setResetOpen(true)} openNewRecipe={() => setRecipeOpen(true)} openRecipe={(recipe) => setSelectedRecipeId(recipe.id)} />
         )}
@@ -191,7 +203,7 @@ function App() {
             addManual={() => setManualOpen(true)} regenerate={generate} resetWeek={() => setResetOpen(true)} announce={announce} />
         )}
         {view === 'recipes' && (
-          <RecipesView recipes={state.recipes} openNewRecipe={() => setRecipeOpen(true)} edit={setEditingRecipe}
+          <RecipesView recipes={state.recipes} history={state.weekHistory ?? []} openNewRecipe={() => setRecipeOpen(true)} edit={setEditingRecipe}
             remove={(id) => update((current) => ({ ...current,
               recipes: current.recipes.filter((recipe) => recipe.id !== id),
               plan: current.plan.filter((meal) => meal.recipeId !== id)
@@ -230,7 +242,7 @@ function App() {
       {!editingRecipe && selectedRecipe && <RecipeDetailsDialog recipe={selectedRecipe} planned={selectedIds.has(selectedRecipe.id)} close={() => setSelectedRecipeId(null)} edit={() => {
         setEditingRecipe(selectedRecipe)
       }} togglePlan={() => toggleRecipe(selectedRecipe)} />}
-      {manualOpen && <ManualItemDialog savedItems={state.extraShoppingItems ?? []} close={() => setManualOpen(false)} save={(item, saveForLater) => {
+      {manualOpen && <ManualItemDialog savedItems={state.extraShoppingItems ?? []} history={state.weekHistory ?? []} close={() => setManualOpen(false)} save={(item, saveForLater) => {
         update((current) => ({
           ...current,
           shoppingList: [...current.shoppingList, item],
@@ -241,8 +253,8 @@ function App() {
         setManualOpen(false)
         announce(saveForLater ? 'Item added and saved to your extras' : 'Item added to the shopping list')
       }} />}
-      {resetOpen && <ResetWeekDialog close={() => setResetOpen(false)} reset={resetWeek}
-        plannedMeals={state.plan.length} shoppingItems={state.shoppingList.length} />}
+      {resetOpen && <ResetWeekDialog close={() => setResetOpen(false)} finish={finishWeek} discard={discardWeek}
+        plannedMeals={state.plan.length} purchasedItems={state.shoppingList.filter((item) => item.checked && !item.atHome).length} />}
       {inboxOpen && <InboxDialog close={() => setInboxOpen(false)} save={async (submission) => {
         const item = await submitInboxItem(submission)
         setInboxItems((current) => [item, ...current])
@@ -273,8 +285,9 @@ function NavButton({ active, onClick, icon, label, badge }: { active: boolean; o
   return <button className={active ? 'active' : ''} onClick={onClick}><span className="nav-icon">{icon}{badge && <b>{badge}</b>}</span><span>{label}</span></button>
 }
 
-function PlanView({ state, plannedRecipes, selectedIds, query, setQuery, toggleRecipe, changeServings, generate, resetWeek, openNewRecipe, openRecipe }: {
+function PlanView({ state, history, plannedRecipes, selectedIds, query, setQuery, toggleRecipe, changeServings, generate, resetWeek, openNewRecipe, openRecipe }: {
   state: AppState
+  history: WeekHistoryEntry[]
   plannedRecipes: { meal: AppState['plan'][number]; recipe: Recipe }[]
   selectedIds: Set<string>
   query: string
@@ -298,13 +311,15 @@ function PlanView({ state, plannedRecipes, selectedIds, query, setQuery, toggleR
     : state.recipes.filter((recipe) => (recipe.collection ?? 'old-faithful') === collection)
   const availableTags = [...new Set(collectionRecipes.flatMap((recipe) => recipe.tags ?? []))].sort()
   const filtersActive = healthiness !== 'all' || timeCategory !== 'all' || tag !== 'all'
-  const filtered = state.recipes.filter((recipe) =>
+  const recipeCounts = recipeUsage(history)
+  const recipeCountById = new Map(recipeCounts.map((item) => [item.id, item.count]))
+  const filtered = sortByUsage(state.recipes.filter((recipe) =>
     (collection === 'all' || (recipe.collection ?? 'old-faithful') === collection) &&
     `${recipe.name} ${recipe.description} ${(recipe.tags ?? []).join(' ')}`.toLowerCase().includes(query.toLowerCase()) &&
     (healthiness === 'all' || (recipe.healthiness ?? 'balanced') === healthiness) &&
     (timeCategory === 'all' || recipe.timeCategory === timeCategory) &&
     (tag === 'all' || recipe.tags?.includes(tag))
-  )
+  ), recipeCounts, (recipe) => recipe.id)
   return <>
     <section className="hero">
       <div><p className="eyebrow">Plan your week</p><h1>What’s for<br/><em>Gin-ner?</em></h1></div>
@@ -313,7 +328,7 @@ function PlanView({ state, plannedRecipes, selectedIds, query, setQuery, toggleR
 
     {plannedRecipes.length > 0 && <section className="section planned-section">
       <div className="section-heading"><div><p className="eyebrow">This week</p><h2>{plannedRecipes.length} selected {plannedRecipes.length === 1 ? 'meal' : 'meals'}</h2><p className="section-note">Adjust the servings, then create your shopping list.</p></div>
-        <div className="heading-actions"><button className="secondary danger" onClick={resetWeek}><Trash2 size={17}/> Clear week</button><button className="primary" onClick={generate}>Create shopping list <ChevronRight size={18}/></button></div></div>
+        <div className="heading-actions"><button className="secondary" onClick={resetWeek}><Check size={17}/> Finish week</button><button className="primary" onClick={generate}>Create shopping list <ChevronRight size={18}/></button></div></div>
       <div className="planned-strip">
         {plannedRecipes.map(({ meal, recipe }) => <PlannedMealCard key={meal.id} meal={meal} recipe={recipe} changeServings={changeServings} remove={() => toggleRecipe(recipe)} />)}
       </div>
@@ -341,7 +356,7 @@ function PlanView({ state, plannedRecipes, selectedIds, query, setQuery, toggleR
         {filtered.map((recipe) => <article className={`recipe-card ${selectedIds.has(recipe.id) ? 'selected' : ''}`} key={recipe.id}>
           <button className="recipe-open" onClick={() => openRecipe(recipe)} aria-label={`View ${recipe.name}`}>
             <RecipeVisual recipe={recipe} className="recipe-art"/>
-            <span className="recipe-info"><strong>{recipe.name}</strong><span>{recipe.description}</span><small>{recipe.servings} servings · {recipe.ingredients.length} ingredients{recipe.totalTimeMinutes ? ` · ${durationLabel(recipe.totalTimeMinutes)}` : ''}{recipe.nutritionPerServing ? ` · ${recipe.nutritionPerServing.caloriesKcal} kcal` : ''}</small></span>
+            <span className="recipe-info"><strong>{recipe.name}</strong><span>{recipe.description}</span><small>{recipe.servings} servings · {recipe.ingredients.length} ingredients{recipe.totalTimeMinutes ? ` · ${durationLabel(recipe.totalTimeMinutes)}` : ''}{recipe.nutritionPerServing ? ` · ${recipe.nutritionPerServing.caloriesKcal} kcal` : ''}{recipeCountById.get(recipe.id) ? ` · planned ${recipeCountById.get(recipe.id)}×` : ''}</small></span>
           </button>
           <button className="select-dot" onClick={() => toggleRecipe(recipe)} aria-label={`${selectedIds.has(recipe.id) ? 'Remove' : 'Add'} ${recipe.name} ${selectedIds.has(recipe.id) ? 'from' : 'to'} this week`}>{selectedIds.has(recipe.id) ? <Check/> : <Plus/>}</button>
         </article>)}
@@ -390,7 +405,7 @@ function ShopView({ items, updateItems, addManual, regenerate, resetWeek, announ
 
   return <section className="shop-page section">
     <div className="shop-heading"><div><p className="eyebrow">Ready to fetch</p><h1>{shopTab === 'home' ? 'Cupboard sniff' : 'The fetch list'}</h1><p>{!items.length ? 'Turn your weekly gin-ners into one tidy fetch list.' : shopTab === 'home' ? 'Let Ginny sniff out what is already in the cupboards.' : `${checked} of ${essentialItems.length} essentials fetched${bonusItems.length ? ` · ${bonusItems.length} optional` : ''}`}</p></div>
-      <div className="heading-actions">{!!shoppingItems.length && <button className="secondary" onClick={copyList}><Copy size={17}/> Copy list</button>} {!!items.length && <button className="secondary danger" onClick={resetWeek}><Trash2 size={17}/> Clear week</button>}<button className="secondary" onClick={addManual}><Plus size={18}/> Add item</button></div></div>
+      <div className="heading-actions">{!!shoppingItems.length && <button className="secondary" onClick={copyList}><Copy size={17}/> Copy list</button>} {!!items.length && <button className="secondary" onClick={resetWeek}><Check size={17}/> Finish week</button>}<button className="secondary" onClick={addManual}><Plus size={18}/> Add item</button></div></div>
     {!!items.length && <div className="shop-tabs" role="tablist" aria-label="Shopping steps">
       <button role="tab" aria-selected={shopTab === 'home'} className={shopTab === 'home' ? 'active' : ''} onClick={() => setShopTab('home')}><ClipboardCheck/><span><strong>1. Sniff the cupboards</strong><small>{atHomeCount} of {pantryItems.length} already in the den</small></span></button>
       <button role="tab" aria-selected={shopTab === 'shop'} className={shopTab === 'shop' ? 'active' : ''} onClick={() => setShopTab('shop')}><ShoppingBasket/><span><strong>2. Fetch list</strong><small>{essentialItems.filter((item) => !item.checked).length} essentials left</small></span></button>
@@ -439,23 +454,38 @@ function RecipeVisual({ recipe, className, children }: { recipe: Recipe; classNa
   </span>
 }
 
-function RecipesView({ recipes, openNewRecipe, edit, remove, exportData, importData, logout: signOut }: { recipes: Recipe[]; openNewRecipe: () => void; edit: (recipe: Recipe) => void; remove: (id: string) => void; exportData: () => void; importData: () => void; logout?: () => void }) {
+function RecipesView({ recipes, history, openNewRecipe, edit, remove, exportData, importData, logout: signOut }: { recipes: Recipe[]; history: WeekHistoryEntry[]; openNewRecipe: () => void; edit: (recipe: Recipe) => void; remove: (id: string) => void; exportData: () => void; importData: () => void; logout?: () => void }) {
   const [healthiness, setHealthiness] = useState<Healthiness | 'all'>('all')
   const [timeCategory, setTimeCategory] = useState<TimeCategory | 'all'>('all')
   const [tag, setTag] = useState('all')
   const tags = [...new Set(recipes.flatMap((recipe) => recipe.tags ?? []))].sort()
-  const visible = recipes.filter((recipe) =>
+  const recipeCounts = recipeUsage(history)
+  const visible = sortByUsage(recipes.filter((recipe) =>
     (healthiness === 'all' || recipe.healthiness === healthiness) &&
     (timeCategory === 'all' || recipe.timeCategory === timeCategory) &&
     (tag === 'all' || recipe.tags?.includes(tag))
-  )
+  ), recipeCounts, (recipe) => recipe.id)
+  const recipeCountById = new Map(recipeCounts.map((item) => [item.id, item.count]))
+  const favouriteRecipes = recipeCounts.slice(0, 3)
+  const favouriteExtras = extraItemUsage(history).slice(0, 3)
   return <section className="section library-page">
     <div className="shop-heading"><div><p className="eyebrow">Recipe collection</p><h1>Ginny’s recipe stash</h1><p>{recipes.length} dishes ready to choose from.</p></div><button className="primary" onClick={openNewRecipe}><Plus size={18}/> Add recipe</button></div>
+    <section className="usage-card" aria-labelledby="usage-title">
+      <div className="usage-intro"><Sparkles/><div><p className="eyebrow">Household history</p><h2 id="usage-title">The pack’s favourites</h2><p>{history.length ? `Based on ${history.length} finished ${history.length === 1 ? 'week' : 'weeks'}.` : 'Finish a week to start building reliable favourites.'}</p></div></div>
+      <div className="usage-groups">
+        <UsageRanking title="Most planned recipes" items={favouriteRecipes}/>
+        <UsageRanking title="Most-bought extras" items={favouriteExtras}/>
+      </div>
+    </section>
     <div className="recipe-filters"><label><span>Healthiness</span><select value={healthiness} onChange={(event) => setHealthiness(event.target.value as Healthiness | 'all')}><option value="all">Every appetite</option>{Object.entries(healthinessLabels).map(([value, label]) => <option value={value} key={value}>{label}</option>)}</select></label><label><span>Time</span><select value={timeCategory} onChange={(event) => setTimeCategory(event.target.value as TimeCategory | 'all')}><option value="all">Any walk length</option>{Object.entries(timeCategoryLabels).map(([value, label]) => <option value={value} key={value}>{label}</option>)}</select></label><label><span>Tag</span><select value={tag} onChange={(event) => setTag(event.target.value)}><option value="all">All tags</option>{tags.map((value) => <option key={value}>{value}</option>)}</select></label></div>
-    <div className="library-grid">{visible.map((recipe) => <article className="library-card" key={recipe.id}><RecipeVisual recipe={recipe} className="library-art"/><div><h2>{recipe.name}</h2><p>{recipe.description}</p><div className="tag-row"><span className={`health-tag ${recipe.healthiness ?? 'balanced'}`}>{healthinessLabels[recipe.healthiness ?? 'balanced']}</span>{recipe.timeCategory && <span>{timeCategoryLabels[recipe.timeCategory]}</span>}{(recipe.tags ?? []).slice(0, 4).map((value) => <span key={value}>{value}</span>)}</div>{recipe.nutritionPerServing && <div className="nutrition-row"><b>{recipe.nutritionPerServing.caloriesKcal} kcal</b><span>{recipe.nutritionPerServing.proteinG}g protein</span><span>{recipe.nutritionPerServing.carbsG}g carbs</span><span>{recipe.nutritionPerServing.fatG}g fat</span><span>{recipe.nutritionPerServing.sugarG}g sugar</span></div>}<small>{recipe.servings} servings · {recipe.ingredients.length} ingredients{recipe.totalTimeMinutes ? ` · ${durationLabel(recipe.totalTimeMinutes)}` : ''}</small></div><div className="library-actions"><button onClick={() => edit(recipe)} aria-label={`Edit ${recipe.name}`}><Pencil/></button><button className="delete-recipe" onClick={() => remove(recipe.id)} aria-label={`Delete ${recipe.name}`}><Trash2/></button></div></article>)}</div>
+    <div className="library-grid">{visible.map((recipe) => <article className="library-card" key={recipe.id}><RecipeVisual recipe={recipe} className="library-art"/><div><h2>{recipe.name}</h2><p>{recipe.description}</p><div className="tag-row"><span className={`health-tag ${recipe.healthiness ?? 'balanced'}`}>{healthinessLabels[recipe.healthiness ?? 'balanced']}</span>{recipe.timeCategory && <span>{timeCategoryLabels[recipe.timeCategory]}</span>}{(recipe.tags ?? []).slice(0, 4).map((value) => <span key={value}>{value}</span>)}</div>{recipe.nutritionPerServing && <div className="nutrition-row"><b>{recipe.nutritionPerServing.caloriesKcal} kcal</b><span>{recipe.nutritionPerServing.proteinG}g protein</span><span>{recipe.nutritionPerServing.carbsG}g carbs</span><span>{recipe.nutritionPerServing.fatG}g fat</span><span>{recipe.nutritionPerServing.sugarG}g sugar</span></div>}<small>{recipe.servings} servings · {recipe.ingredients.length} ingredients{recipe.totalTimeMinutes ? ` · ${durationLabel(recipe.totalTimeMinutes)}` : ''}{recipeCountById.get(recipe.id) ? ` · planned ${recipeCountById.get(recipe.id)}×` : ''}</small></div><div className="library-actions"><button onClick={() => edit(recipe)} aria-label={`Edit ${recipe.name}`}><Pencil/></button><button className="delete-recipe" onClick={() => remove(recipe.id)} aria-label={`Delete ${recipe.name}`}><Trash2/></button></div></article>)}</div>
     {!visible.length && <div className="empty-inline">Ginny could not catch that recipe scent.</div>}
     <div className="data-card"><div><h2>Back up your recipes</h2><p>Download a backup before clearing browser data or moving to a new device.</p></div><div><button className="secondary" onClick={importData}><Upload size={17}/> Restore backup</button><button className="secondary" onClick={exportData}><Download size={17}/> Download backup</button>{signOut && <button className="secondary" onClick={signOut}><LogOut size={17}/> Sign out</button>}</div></div>
   </section>
+}
+
+function UsageRanking({ title, items }: { title: string; items: { id: string; name: string; count: number }[] }) {
+  return <div className="usage-ranking"><strong>{title}</strong>{items.length ? <ol>{items.map((item) => <li key={item.id}><span>{item.name}</span><b>{item.count}×</b></li>)}</ol> : <p>Nothing counted yet</p>}</div>
 }
 
 const inboxKindLabels: Record<InboxKind, string> = {
@@ -537,17 +567,19 @@ function InboxDialog({ close, save }: { close: () => void; save: (submission: In
   </form></DialogFrame>
 }
 
-function ResetWeekDialog({ close, reset, plannedMeals, shoppingItems }: {
+function ResetWeekDialog({ close, finish, discard, plannedMeals, purchasedItems }: {
   close: () => void
-  reset: () => void
+  finish: () => void
+  discard: () => void
   plannedMeals: number
-  shoppingItems: number
+  purchasedItems: number
 }) {
   return <div className="modal-backdrop" onMouseDown={(event) => event.target === event.currentTarget && close()}>
     <section className="dialog confirm-dialog" role="alertdialog" aria-modal="true" aria-labelledby="reset-week-title" aria-describedby="reset-week-description">
-      <header><div><p className="eyebrow">Start fresh</p><h2 id="reset-week-title">Clear this week?</h2></div><button className="icon-button" onClick={close} aria-label="Close"><X/></button></header>
-      <p className="dialog-copy" id="reset-week-description">This will clear {plannedMeals} planned {plannedMeals === 1 ? 'meal' : 'meals'} and {shoppingItems} shopping-list {shoppingItems === 1 ? 'item' : 'items'}. Your recipes will stay saved.</p>
-      <footer><button className="secondary" onClick={close}>Cancel</button><button className="primary danger-action" onClick={reset}><Trash2 size={17}/> Clear week</button></footer>
+      <header><div><p className="eyebrow">Start fresh</p><h2 id="reset-week-title">Finish this week?</h2></div><button className="icon-button" onClick={close} aria-label="Close"><X/></button></header>
+      <p className="dialog-copy" id="reset-week-description">Save {plannedMeals} planned {plannedMeals === 1 ? 'recipe' : 'recipes'} and {purchasedItems} checked {purchasedItems === 1 ? 'purchase' : 'purchases'} to your household history, then clear the current week.</p>
+      <p className="dialog-hint">Still testing? Discarding clears the week without changing any counters.</p>
+      <footer className="finish-actions"><button className="text-button danger-text" onClick={discard}><Trash2 size={17}/> Discard without counting</button><span/><button className="secondary" onClick={close}>Cancel</button><button className="primary" onClick={finish}><Check size={17}/> Finish &amp; save history</button></footer>
     </section>
   </div>
 }
@@ -617,14 +649,20 @@ function RecipeDialog({ recipe, close, save }: { recipe?: Recipe; close: () => v
   </DialogFrame>
 }
 
-function ManualItemDialog({ savedItems, close, save }: { savedItems: ShoppingCatalogItem[]; close: () => void; save: (item: ShoppingListItem, saveForLater: boolean) => void }) {
+function ManualItemDialog({ savedItems, history, close, save }: { savedItems: ShoppingCatalogItem[]; history: WeekHistoryEntry[]; close: () => void; save: (item: ShoppingListItem, saveForLater: boolean) => void }) {
   const [name, setName] = useState('')
   const [quantity, setQuantity] = useState(1)
   const [unit, setUnit] = useState<Unit>('piece')
   const [category, setCategory] = useState<Category>('Other')
   const [query, setQuery] = useState('')
   const [saveForLater, setSaveForLater] = useState(false)
-  const catalogue = [...savedItems, ...preparedShoppingItems.filter((prepared) => !savedItems.some((saved) => sameCatalogName(saved.name, prepared.name)))]
+  const extraCounts = extraItemUsage(history)
+  const extraCountByName = new Map(extraCounts.map((item) => [item.id, item.count]))
+  const catalogue = sortByUsage(
+    [...savedItems, ...preparedShoppingItems.filter((prepared) => !savedItems.some((saved) => sameCatalogName(saved.name, prepared.name)))],
+    extraCounts,
+    (item) => item.name.trim().toLocaleLowerCase()
+  )
   const filtered = catalogue.filter((item) => item.name.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase()))
   const matchesCatalogue = catalogue.some((item) => sameCatalogName(item.name, name))
 
@@ -639,7 +677,7 @@ function ManualItemDialog({ savedItems, close, save }: { savedItems: ShoppingCat
   return <DialogFrame title="Add shopping item" close={close}>
     <section className="catalogue-picker" aria-labelledby="catalogue-title">
       <div className="catalogue-heading"><div><h3 id="catalogue-title">Choose a regular</h3><p>Household basics, treats, and your saved extras.</p></div><div className="catalogue-search"><Search/><input autoFocus value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Find an item" aria-label="Find a catalogue item"/></div></div>
-      <div className="catalogue-grid">{filtered.map((item) => <button type="button" className={sameCatalogName(item.name, name) ? 'selected' : ''} key={item.id} onClick={() => choose(item)}><span>{item.name}</span><small>{item.custom ? 'Your extra' : item.category}</small></button>)}</div>
+      <div className="catalogue-grid">{filtered.map((item) => <button type="button" className={sameCatalogName(item.name, name) ? 'selected' : ''} key={item.id} onClick={() => choose(item)}><span>{item.name}</span><small>{extraCountByName.get(item.name.trim().toLocaleLowerCase()) ? `Bought ${extraCountByName.get(item.name.trim().toLocaleLowerCase())}×` : item.custom ? 'Your extra' : item.category}</small></button>)}</div>
       {!filtered.length && <p className="catalogue-empty">No match yet — add it as a custom item below.</p>}
     </section>
     <div className="custom-item-divider"><span>Item details</span></div>
