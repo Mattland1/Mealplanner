@@ -850,6 +850,20 @@ const starterRecipeBasics: Recipe[] = [
       i('cpp-salt', 'Salt', 0.5, 'tsp', 'Spices & sauces'),
       i('cpp-pepper', 'Black pepper', 0.25, 'tsp', 'Spices & sauces')
     ]
+  },
+  {
+    id: 'oven-pizza', name: 'Oven Pizza', emoji: '🍕', servings: 4,
+    description: 'A trusty oven-baked pizza with tangy tomato sauce, creamy hollandaise, capers, sweetcorn and jalapeños.',
+    collection: 'old-faithful',
+    ingredients: [
+      i('op-pizza-dough', 'Pre-made pizza dough', 400, 'g', 'Bakery'),
+      i('op-pizza-sauce', 'Pizza sauce', 200, 'g', 'Spices & sauces'),
+      i('op-hollandaise', 'Hollandaise sauce', 100, 'g', 'Spices & sauces'),
+      i('op-capers', 'Capers', 30, 'g', 'Spices & sauces'),
+      i('op-shredded-cheese', 'Shredded cheese', 200, 'g', 'Dairy & eggs'),
+      i('op-sweetcorn', 'Sweetcorn', 150, 'g', 'Canned goods'),
+      i('op-jalapenos', 'Jalapeños', 1, 'piece', 'Vegetables')
+    ]
   }
 ]
 
@@ -901,7 +915,8 @@ const starterMetadata: Record<string, Pick<Recipe, 'tags' | 'healthiness' | 'nut
   'garden-tomato-salad': { tags: ['vegan', 'salad', 'quick', 'gluten-free'], healthiness: 'healthy', nutritionPerServing: { caloriesKcal: 111, proteinG: 2.1, carbsG: 10.4, fatG: 7.2, sugarG: 6.5, fiberG: 2.6, saturatedFatG: 1, sodiumMg: 330, estimated: true } },
   'garden-green-bean-salad': { tags: ['vegan', 'german-inspired', 'salad', 'gluten-free', 'high-fiber'], healthiness: 'healthy', nutritionPerServing: { caloriesKcal: 138, proteinG: 4.1, carbsG: 17.1, fatG: 7.4, sugarG: 7.6, fiberG: 5.8, saturatedFatG: 0.6, sodiumMg: 350, estimated: true } },
   'classic-zucchini-fritters': { tags: ['vegetarian', 'fritters', 'family-friendly'], healthiness: 'balanced', nutritionPerServing: { caloriesKcal: 480, proteinG: 22, carbsG: 42, fatG: 25, sugarG: 10, fiberG: 4, saturatedFatG: 8, sodiumMg: 850, estimated: true } },
-  'creamy-pumpkin-pasta': { tags: ['vegetarian', 'italian-inspired', 'pasta', 'family-friendly'], healthiness: 'balanced', nutritionPerServing: { caloriesKcal: 585, proteinG: 20, carbsG: 80, fatG: 17, sugarG: 9, fiberG: 8, saturatedFatG: 9, sodiumMg: 700, estimated: true } }
+  'creamy-pumpkin-pasta': { tags: ['vegetarian', 'italian-inspired', 'pasta', 'family-friendly'], healthiness: 'balanced', nutritionPerServing: { caloriesKcal: 585, proteinG: 20, carbsG: 80, fatG: 17, sugarG: 9, fiberG: 8, saturatedFatG: 9, sodiumMg: 700, estimated: true } },
+  'oven-pizza': { tags: ['vegetarian', 'italian-inspired', 'pizza', 'quick', 'spicy'], healthiness: 'indulgent', nutritionPerServing: { caloriesKcal: 545, proteinG: 21, carbsG: 59, fatG: 23, sugarG: 7, fiberG: 3, saturatedFatG: 10, sodiumMg: 1100, estimated: true } }
 }
 
 const starterInstructions: Record<string, string[]> = {
@@ -1181,6 +1196,13 @@ const starterInstructions: Record<string, string[]> = {
     'Meanwhile, cook the pasta in salted water until al dente. Reserve a mug of pasta water, then drain.',
     'Blend the pumpkin mixture until smooth. Stir in the cream, nutmeg and half the grated cheese, then season with salt and black pepper.',
     'Toss the pasta through the sauce, loosening it with reserved pasta water if needed. Serve with the remaining cheese.'
+  ],
+  'oven-pizza': [
+    'Heat the oven to 230°C, or as directed on the pizza-dough packet, and heat a large baking tray inside.',
+    'Unroll or stretch the dough on baking paper. Spread over the pizza sauce, leaving a narrow border, then drizzle over the hollandaise.',
+    'Drain the capers and sweetcorn well. Scatter them over the pizza with the shredded cheese and thinly sliced jalapeño.',
+    'Slide the pizza and baking paper onto the hot tray and bake for 12–15 minutes, until the crust is crisp and the cheese is bubbling.',
+    'Rest for 2 minutes, then slice and serve.'
   ]
 }
 
@@ -1237,7 +1259,8 @@ const starterTimes: Record<string, Pick<Recipe, 'totalTimeMinutes' | 'timeCatego
   'garden-tomato-salad': timeEstimate(15),
   'garden-green-bean-salad': timeEstimate(35),
   'classic-zucchini-fritters': timeEstimate(45),
-  'creamy-pumpkin-pasta': timeEstimate(40)
+  'creamy-pumpkin-pasta': timeEstimate(40),
+  'oven-pizza': timeEstimate(30)
 }
 
 export const starterRecipes: Recipe[] = starterRecipeBasics.map((recipe) => ({ ...recipe, ...starterMetadata[recipe.id], ...starterTimes[recipe.id], instructions: starterInstructions[recipe.id] }))
@@ -1256,7 +1279,7 @@ const GARDEN_RECIPE_IDS = new Set([
   'garden-green-bean-salad'
 ])
 
-export const CATALOG_VERSION = 25
+export const CATALOG_VERSION = 26
 
 const CHEESE_NAME_REPLACEMENTS: Record<string, string> = {
   'Vegetarian Italian-style hard cheese': 'Parmesan',

@@ -43,12 +43,21 @@ describe('recipe catalog metadata', () => {
       'sweet-potato-avocado-hash', 'vegetarian-burritos', 'vegetable-paella-smoked-tofu',
       'plant-based-mince-tacos', 'like-chicken-guacamole-wraps', 'tomato-risotto',
       'italian-pasta-salad', 'kisir-bulgur-salad', 'classic-zucchini-fritters',
-      'creamy-pumpkin-pasta'
+      'creamy-pumpkin-pasta', 'oven-pizza'
     ])
     expect(starterRecipes.filter((recipe) => recipe.collection === 'garden-harvest').map((recipe) => recipe.id)).toEqual([
       'creamy-zucchini-soup', 'coconut-ginger-pumpkin-soup', 'schmorgurken-with-potatoes',
       'mangold-chickpea-curry', 'garden-tomato-salad', 'garden-green-bean-salad'
     ])
+  })
+
+  it('scales the Oven Pizza toppings with practical shopping units', () => {
+    const recipe = starterRecipes.find((candidate) => candidate.id === 'oven-pizza')!
+    const list = buildShoppingList([recipe], [{ id: 'planned-oven-pizza', recipeId: recipe.id, servings: 2 }])
+
+    expect(list.find((item) => item.name === 'Pre-made pizza dough')).toMatchObject({ quantity: 200, unit: 'g' })
+    expect(list.find((item) => item.name === 'Hollandaise sauce')).toMatchObject({ quantity: 50, unit: 'g' })
+    expect(list.find((item) => item.name === 'Jalapeños')).toMatchObject({ quantity: 0.5, unit: 'piece' })
   })
 
   it('scales the vegetarian burrito staples for the shopping list', () => {
