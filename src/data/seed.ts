@@ -25,7 +25,7 @@ const starterRecipeBasics: Recipe[] = [
       i('lp-ricotta', 'Ricotta', 250, 'g', 'Dairy & eggs'),
       i('lp-lemon', 'Lemon', 2, 'piece', 'Fruit'),
       i('lp-peas', 'Green peas', 300, 'g', 'Frozen'),
-      i('lp-parmesan', 'Vegetarian Italian-style hard cheese', 80, 'g', 'Dairy & eggs')
+      i('lp-parmesan', 'Parmesan', 80, 'g', 'Dairy & eggs')
     ]
   },
   {
@@ -61,7 +61,7 @@ const starterRecipeBasics: Recipe[] = [
       i('hg-gnocchi', 'Gnocchi', 800, 'g', 'Dry goods'),
       i('hg-chickpeas', 'Chickpeas', 1, 'pack', 'Canned goods'),
       i('hg-tomatoes', 'Cherry tomatoes', 500, 'g', 'Vegetables'),
-      i('hg-feta', 'Vegetarian feta', 200, 'g', 'Dairy & eggs'),
+      i('hg-feta', 'Feta', 200, 'g', 'Dairy & eggs'),
       i('hg-harissa', 'Harissa paste', 2, 'tbsp', 'Spices & sauces')
     ]
   },
@@ -101,7 +101,7 @@ const starterRecipeBasics: Recipe[] = [
       i('ar-tomatoes', 'Chopped tomatoes', 2, 'pack', 'Canned goods'),
       i('ar-onion', 'Onion', 1, 'piece', 'Vegetables'),
       i('ar-garlic', 'Garlic', 3, 'piece', 'Vegetables'),
-      i('ar-parmesan', 'Vegetarian Italian-style hard cheese', 80, 'g', 'Dairy & eggs')
+      i('ar-parmesan', 'Parmesan', 80, 'g', 'Dairy & eggs')
     ]
   },
   {
@@ -109,7 +109,7 @@ const starterRecipeBasics: Recipe[] = [
     description: 'Golden halloumi, peppers and fluffy herbed couscous.',
     collection: 'explore',
     ingredients: [
-      i('ht-halloumi', 'Vegetarian halloumi', 450, 'g', 'Dairy & eggs'),
+      i('ht-halloumi', 'Halloumi', 450, 'g', 'Dairy & eggs'),
       i('ht-couscous', 'Couscous', 300, 'g', 'Dry goods'),
       i('ht-peppers', 'Bell pepper', 3, 'piece', 'Vegetables'),
       i('ht-courgette', 'Courgette', 2, 'piece', 'Vegetables'),
@@ -123,7 +123,7 @@ const starterRecipeBasics: Recipe[] = [
     sourceUrl: 'https://www.chefkoch.de/rezepte/1805181291909643/Enchiladas-de-Queso.html',
     ingredients: [
       i('cpe-tortillas', 'Tortillas', 8, 'piece', 'Bakery'),
-      i('cpe-cheese', 'Vegetarian grated cheese', 400, 'g', 'Dairy & eggs'),
+      i('cpe-cheese', 'Grated cheese', 400, 'g', 'Dairy & eggs'),
       i('cpe-onions', 'Onions', 2, 'piece', 'Vegetables'),
       i('cpe-peppers', 'Bell peppers', 3, 'piece', 'Vegetables'),
       i('cpe-creme-fraiche', 'Crème fraîche', 400, 'g', 'Dairy & eggs'),
@@ -178,7 +178,7 @@ const starterRecipeBasics: Recipe[] = [
   },
   {
     id: 'saffron-risotto', name: 'Saffron risotto', emoji: '🍚', servings: 4,
-    description: 'Classic creamy risotto with saffron, white wine and vegetarian hard cheese.',
+    description: 'Classic creamy risotto with saffron, white wine and Parmesan.',
     collection: 'explore',
     sourceUrl: 'https://www.chefkoch.de/rezepte/1687631277047830/Risotto-alla-milanese.html',
     ingredients: [
@@ -188,7 +188,7 @@ const starterRecipeBasics: Recipe[] = [
       i('sr-butter', 'Butter', 90, 'g', 'Dairy & eggs'),
       i('sr-wine', 'Dry white wine', 100, 'ml', 'Spices & sauces'),
       i('sr-saffron', 'Saffron', 0.5, 'tsp', 'Spices & sauces'),
-      i('sr-cheese', 'Vegetarian Italian-style hard cheese', 75, 'g', 'Dairy & eggs'),
+      i('sr-cheese', 'Parmesan', 75, 'g', 'Dairy & eggs'),
       i('sr-salt', 'Salt', 0.5, 'tsp', 'Spices & sauces'),
       i('sr-pepper', 'Black pepper', 0.5, 'tsp', 'Spices & sauces')
     ]
@@ -225,7 +225,7 @@ const starterRecipeBasics: Recipe[] = [
     ingredients: [
       i('kbc-kidney-beans', 'Kidney beans (400 g can)', 1, 'pack', 'Canned goods'),
       i('kbc-onion', 'Onion', 1, 'piece', 'Vegetables'),
-      i('kbc-grated-cheddar', 'Vegetarian grated cheddar', 100, 'g', 'Dairy & eggs'),
+      i('kbc-grated-cheddar', 'Grated cheddar', 100, 'g', 'Dairy & eggs'),
       i('kbc-breadcrumbs', 'Breadcrumbs', 100, 'g', 'Dry goods'),
       i('kbc-egg', 'Egg', 1, 'piece', 'Dairy & eggs'),
       i('kbc-flour', 'Flour', 2, 'tbsp', 'Dry goods'),
@@ -234,7 +234,7 @@ const starterRecipeBasics: Recipe[] = [
       i('kbc-pepper', 'Black pepper', 0.5, 'tsp', 'Spices & sauces'),
       i('kbc-buns', 'Burger buns', 4, 'piece', 'Bakery'),
       i('kbc-tomato', 'Tomato', 2, 'piece', 'Vegetables'),
-      i('kbc-cheddar-slices', 'Vegetarian cheddar slices', 4, 'piece', 'Dairy & eggs'),
+      i('kbc-cheddar-slices', 'Cheddar slices', 4, 'piece', 'Dairy & eggs'),
       i('kbc-ketchup', 'Ketchup', 4, 'tbsp', 'Spices & sauces'),
       i('kbc-potatoes', 'Potatoes', 800, 'g', 'Vegetables')
     ]
@@ -343,7 +343,7 @@ const starterRecipeBasics: Recipe[] = [
       i('ac-cream', 'Double cream', 200, 'ml', 'Dairy & eggs'),
       i('ac-salt', 'Salt', 0.5, 'tsp', 'Spices & sauces'),
       i('ac-black-pepper', 'Black pepper', 0.25, 'tsp', 'Spices & sauces'),
-      i('ac-parmesan', 'Vegetarian Italian-style hard cheese', 50, 'g', 'Dairy & eggs')
+      i('ac-parmesan', 'Parmesan', 50, 'g', 'Dairy & eggs')
     ]
   },
   {
@@ -366,7 +366,7 @@ const starterRecipeBasics: Recipe[] = [
   },
   {
     id: 'baked-mushroom-brown-rice-risotto', name: 'Baked mushroom brown-rice risotto', emoji: '🍄', servings: 6,
-    description: 'Creamy oven-baked brown-rice risotto with mushrooms, vegetarian hard cheese and fresh oregano.',
+    description: 'Creamy oven-baked brown-rice risotto with mushrooms, Parmesan and fresh oregano.',
     collection: 'old-faithful',
     sourceUrl: 'https://cookieandkate.com/easy-brown-rice-risotto-with-mushrooms-and-fresh-oregano/',
     ingredients: [
@@ -376,7 +376,7 @@ const starterRecipeBasics: Recipe[] = [
       i('bmrr-stock', 'Vegetable stock', 1.2, 'l', 'Canned goods'),
       i('bmrr-rice', 'Brown arborio rice', 1.5, 'cup', 'Dry goods'),
       i('bmrr-mushrooms', 'Cremini mushrooms', 370, 'g', 'Vegetables'),
-      i('bmrr-cheese', 'Vegetarian Italian-style hard cheese', 100, 'g', 'Dairy & eggs'),
+      i('bmrr-cheese', 'Parmesan', 100, 'g', 'Dairy & eggs'),
       i('bmrr-wine', 'Dry white wine', 120, 'ml', 'Spices & sauces', true),
       i('bmrr-butter', 'Unsalted butter', 42, 'g', 'Dairy & eggs'),
       i('bmrr-tamari', 'Tamari', 2, 'tsp', 'Spices & sauces', true),
@@ -387,7 +387,7 @@ const starterRecipeBasics: Recipe[] = [
   },
   {
     id: 'vegetarian-caesar-wraps', name: 'Vegetarian Caesar wraps', emoji: '🥬', servings: 6,
-    description: 'Crunchy romaine, croutons and vegetarian hard cheese in a creamy yogurt Caesar dressing, rolled into wraps or served as a salad.',
+    description: 'Crunchy romaine, croutons and Parmesan in a creamy yogurt Caesar dressing, rolled into wraps or served as a salad.',
     collection: 'old-faithful',
     ingredients: [
       i('vcw-garlic', 'Garlic', 2, 'piece', 'Vegetables'),
@@ -400,7 +400,7 @@ const starterRecipeBasics: Recipe[] = [
       i('vcw-pepper', 'Black pepper', 0.25, 'tsp', 'Spices & sauces'),
       i('vcw-romaine', 'Romaine lettuce hearts', 3, 'piece', 'Vegetables'),
       i('vcw-croutons', 'Croutons', 150, 'g', 'Bakery'),
-      i('vcw-cheese', 'Vegetarian Italian-style hard cheese', 90, 'g', 'Dairy & eggs'),
+      i('vcw-cheese', 'Parmesan', 90, 'g', 'Dairy & eggs'),
       i('vcw-tortillas', 'Large flour tortillas', 6, 'piece', 'Bakery')
     ]
   },
@@ -476,7 +476,7 @@ const starterRecipeBasics: Recipe[] = [
       i('cpb-salt', 'Salt', 0.5, 'tsp', 'Spices & sauces'),
       i('cpb-pepper', 'Black pepper', 0.5, 'tsp', 'Spices & sauces'),
       i('cpb-chilli-flakes', 'Red pepper flakes', 0.25, 'tsp', 'Spices & sauces'),
-      i('cpb-cheese', 'Vegetarian Italian-style hard cheese', 50, 'g', 'Dairy & eggs'),
+      i('cpb-cheese', 'Parmesan', 50, 'g', 'Dairy & eggs'),
       i('cpb-spaghetti', 'Spaghetti', 250, 'g', 'Dry goods')
     ]
   },
@@ -529,7 +529,7 @@ const starterRecipeBasics: Recipe[] = [
     ingredients: [
       i('cfsp-peppers', 'Red bell peppers', 4, 'piece', 'Vegetables'),
       i('cfsp-spinach', 'Baby spinach', 200, 'g', 'Vegetables'),
-      i('cfsp-feta', 'Vegetarian feta', 200, 'g', 'Dairy & eggs'),
+      i('cfsp-feta', 'Feta', 200, 'g', 'Dairy & eggs'),
       i('cfsp-couscous', 'Couscous', 200, 'g', 'Dry goods'),
       i('cfsp-onion', 'Onion', 1, 'piece', 'Vegetables'),
       i('cfsp-garlic', 'Garlic', 3, 'piece', 'Vegetables'),
@@ -566,7 +566,7 @@ const starterRecipeBasics: Recipe[] = [
       i('vb-rice', 'Long-grain rice', 160, 'g', 'Dry goods'),
       i('vb-black-beans', 'Black beans (400 g can)', 1, 'pack', 'Canned goods'),
       i('vb-plant-mince', 'Fake meat', 250, 'g', 'Other'),
-      i('vb-cheese', 'Vegetarian grated cheese', 120, 'g', 'Dairy & eggs'),
+      i('vb-cheese', 'Grated cheese', 120, 'g', 'Dairy & eggs'),
       i('vb-avocados', 'Avocados', 2, 'piece', 'Vegetables'),
       i('vb-tomatoes', 'Tomatoes', 2, 'piece', 'Vegetables'),
       i('vb-red-onion', 'Red onion', 1, 'piece', 'Vegetables'),
@@ -618,7 +618,7 @@ const starterRecipeBasics: Recipe[] = [
       i('pbmt-maple-syrup', 'Maple syrup', 2, 'tsp', 'Spices & sauces'),
       i('pbmt-salt', 'Salt', 0.25, 'tsp', 'Spices & sauces'),
       i('pbmt-tortillas', 'Corn tortillas', 8, 'piece', 'Bakery'),
-      i('pbmt-feta', 'Vegetarian feta', 100, 'g', 'Dairy & eggs'),
+      i('pbmt-feta', 'Feta', 100, 'g', 'Dairy & eggs'),
       i('pbmt-coriander', 'Fresh coriander', 0.5, 'pack', 'Vegetables'),
       i('pbmt-lime', 'Lime', 1, 'piece', 'Fruit')
     ]
@@ -636,7 +636,7 @@ const starterRecipeBasics: Recipe[] = [
       i('lcgw-garlic', 'Garlic', 2, 'piece', 'Vegetables'),
       i('lcgw-lime', 'Lime', 1, 'piece', 'Fruit'),
       i('lcgw-creme-fraiche', 'Crème fraîche', 3, 'tbsp', 'Dairy & eggs'),
-      i('lcgw-feta', 'Vegetarian feta', 100, 'g', 'Dairy & eggs'),
+      i('lcgw-feta', 'Feta', 100, 'g', 'Dairy & eggs'),
       i('lcgw-lettuce', 'Romaine lettuce', 0.5, 'piece', 'Vegetables'),
       i('lcgw-tomato', 'Tomato', 1, 'piece', 'Vegetables'),
       i('lcgw-oil', 'Olive oil', 1, 'tbsp', 'Spices & sauces'),
@@ -666,7 +666,7 @@ const starterRecipeBasics: Recipe[] = [
       i('tr-oil', 'Olive oil', 1, 'tbsp', 'Spices & sauces'),
       i('tr-salt', 'Salt', 0.5, 'tsp', 'Spices & sauces'),
       i('tr-pepper', 'Black pepper', 0.25, 'tsp', 'Spices & sauces'),
-      i('tr-cheese', 'Vegetarian Italian-style hard cheese', 30, 'g', 'Dairy & eggs', true)
+      i('tr-cheese', 'Parmesan', 30, 'g', 'Dairy & eggs', true)
     ]
   },
   {
@@ -679,7 +679,7 @@ const starterRecipeBasics: Recipe[] = [
       i('ips-dried-tomatoes', 'Sun-dried tomatoes in oil', 150, 'g', 'Spices & sauces'),
       i('ips-rocket', 'Rocket', 150, 'g', 'Vegetables'),
       i('ips-pine-nuts', 'Pine nuts', 50, 'g', 'Dry goods'),
-      i('ips-cheese', 'Vegetarian Italian-style hard cheese', 50, 'g', 'Dairy & eggs'),
+      i('ips-cheese', 'Parmesan', 50, 'g', 'Dairy & eggs'),
       i('ips-garlic', 'Garlic', 1, 'piece', 'Vegetables'),
       i('ips-olive-oil', 'Olive oil', 70, 'ml', 'Spices & sauces'),
       i('ips-balsamic', 'Balsamic vinegar', 3, 'tbsp', 'Spices & sauces'),
@@ -822,7 +822,7 @@ const starterRecipeBasics: Recipe[] = [
       i('czf-zucchini', 'Zucchini', 1, 'kg', 'Vegetables'),
       i('czf-eggs', 'Eggs', 3, 'piece', 'Dairy & eggs'),
       i('czf-flour', 'Flour', 150, 'g', 'Dry goods'),
-      i('czf-cheese', 'Vegetarian grated cheese', 120, 'g', 'Dairy & eggs'),
+      i('czf-cheese', 'Grated cheese', 120, 'g', 'Dairy & eggs'),
       i('czf-spring-onions', 'Spring onions', 4, 'piece', 'Vegetables'),
       i('czf-garlic', 'Garlic', 1, 'piece', 'Vegetables'),
       i('czf-yogurt', 'Plain yogurt', 300, 'g', 'Dairy & eggs'),
@@ -835,7 +835,7 @@ const starterRecipeBasics: Recipe[] = [
   },
   {
     id: 'creamy-pumpkin-pasta', name: 'Creamy pumpkin pasta', emoji: '🎃', servings: 4,
-    description: 'A smooth, gently seasoned pumpkin sauce with pasta and vegetarian hard cheese.',
+    description: 'A smooth, gently seasoned pumpkin sauce with pasta and Parmesan.',
     collection: 'old-faithful',
     ingredients: [
       i('cpp-pumpkin', 'Pumpkin flesh', 800, 'g', 'Vegetables'),
@@ -844,7 +844,7 @@ const starterRecipeBasics: Recipe[] = [
       i('cpp-garlic', 'Garlic', 2, 'piece', 'Vegetables'),
       i('cpp-stock', 'Vegetable stock', 300, 'ml', 'Canned goods'),
       i('cpp-cream', 'Single cream', 150, 'ml', 'Dairy & eggs'),
-      i('cpp-cheese', 'Vegetarian Italian-style hard cheese', 80, 'g', 'Dairy & eggs'),
+      i('cpp-cheese', 'Parmesan', 80, 'g', 'Dairy & eggs'),
       i('cpp-olive-oil', 'Olive oil', 1, 'tbsp', 'Spices & sauces'),
       i('cpp-nutmeg', 'Ground nutmeg', 0.25, 'tsp', 'Spices & sauces'),
       i('cpp-salt', 'Salt', 0.5, 'tsp', 'Spices & sauces'),
@@ -938,7 +938,7 @@ const starterInstructions: Record<string, string[]> = {
     'Add the rice and stir until every grain is glossy. Pour in the wine and let it evaporate completely.',
     'Steep the saffron in 1 tbsp warm water, then add it to the rice. Add the hot stock one ladle at a time, stirring and allowing each addition to absorb.',
     'After 17–18 minutes, when the rice is creamy but still has bite, remove it from the heat and rest for 1 minute.',
-    'Beat in the remaining cold butter and grated vegetarian hard cheese, season, and serve immediately.'
+    'Beat in the remaining cold butter and grated Parmesan, season, and serve immediately.'
   ],
   'mediterranean-stuffed-sweet-potatoes': [
     'Heat the oven to 200°C. Halve the sweet potatoes lengthwise.',
@@ -990,7 +990,7 @@ const starterInstructions: Record<string, string[]> = {
     'Melt the butter in a large frying pan. Finely chop the onion and garlic and sauté them over medium heat until soft.',
     'Dice the bell pepper, add it to the pan and cook for 4–5 minutes.',
     'Add the sweetcorn and cream, season with salt and black pepper, and simmer until the sauce thickens enough to coat the corn.',
-    'Stir in the grated vegetarian hard cheese and serve hot.'
+    'Stir in the grated Parmesan and serve hot.'
   ],
   'chocolate-zucchini-bread': [
     'Heat the oven to 175°C. Grease two 20 × 10 cm loaf tins.',
@@ -1009,7 +1009,7 @@ const starterInstructions: Record<string, string[]> = {
   ],
   'vegetarian-caesar-wraps': [
     'Crush or finely grate the garlic. Whisk it with the mayonnaise, yogurt, mustard, lemon juice and vegetarian Worcestershire sauce, then season with salt and black pepper.',
-    'Chop the romaine and toss it with the croutons, grated vegetarian hard cheese and enough dressing to coat everything generously.',
+    'Chop the romaine and toss it with the croutons, grated Parmesan and enough dressing to coat everything generously.',
     'Warm the tortillas briefly so they are pliable. Divide the dressed salad between them, fold in the sides and roll tightly.',
     'For a Caesar salad instead, leave out the tortillas and serve the dressed romaine mixture in bowls.'
   ],
@@ -1042,7 +1042,7 @@ const starterInstructions: Record<string, string[]> = {
     'Finely chop the onion and garlic and grate or finely dice the carrots. Brown the fake meat in a large frying pan, then add the onion and carrots and cook until softened.',
     'Add the garlic and red pepper flakes and cook briefly. Stir in the crushed tomatoes and ajvar, then simmer for 15–20 minutes.',
     'Stir in the cream and loosen with a little reserved pasta water if needed. Season with salt and black pepper.',
-    'Toss with the spaghetti and finish with grated vegetarian hard cheese.'
+    'Toss with the spaghetti and finish with grated Parmesan.'
   ],
   'air-fryer-chocolate-chip-cookies': [
     'Melt the butter and mix it with the brown and white sugars until smooth. Beat in the egg and vanilla.',
@@ -1108,13 +1108,13 @@ const starterInstructions: Record<string, string[]> = {
     'Gradually add the passata and hot stock, stirring regularly and letting each addition absorb before adding more.',
     'When the rice is tender and creamy, season with the oregano, sugar, salt and black pepper.',
     'Fold in the halved cherry tomatoes, chopped sun-dried tomatoes and coconut milk and heat through.',
-    'Serve with fresh basil and optional grated vegetarian hard cheese.'
+    'Serve with fresh basil and optional grated Parmesan.'
   ],
   'italian-pasta-salad': [
     'Cook the pasta in salted water until al dente, drain and leave to cool.',
     'Toast the pine nuts in a dry frying pan over medium heat until golden.',
     'Wash and roughly chop the rocket. Dice the sun-dried tomatoes and mozzarella.',
-    'Combine the pasta, rocket, tomatoes, mozzarella, pine nuts and grated vegetarian hard cheese in a large bowl.',
+    'Combine the pasta, rocket, tomatoes, mozzarella, pine nuts and grated Parmesan in a large bowl.',
     'Whisk the crushed garlic, olive oil, balsamic vinegar, pesto, mustard, honey, salt and black pepper together.',
     'Pour the dressing over the salad, toss thoroughly and serve.'
   ],
@@ -1256,7 +1256,30 @@ const GARDEN_RECIPE_IDS = new Set([
   'garden-green-bean-salad'
 ])
 
-export const CATALOG_VERSION = 24
+export const CATALOG_VERSION = 25
+
+const CHEESE_NAME_REPLACEMENTS: Record<string, string> = {
+  'Vegetarian Italian-style hard cheese': 'Parmesan',
+  'Vegetarian feta': 'Feta',
+  'Vegetarian halloumi': 'Halloumi',
+  'Vegetarian grated cheese': 'Grated cheese',
+  'Vegetarian grated cheddar': 'Grated cheddar',
+  'Vegetarian cheddar slices': 'Cheddar slices'
+}
+
+function normalizeCheeseNames(recipe: Recipe): Recipe {
+  return {
+    ...recipe,
+    description: recipe.description.replace(/vegetarian (?:Italian-style )?hard cheese/gi, 'Parmesan'),
+    ingredients: recipe.ingredients.map((ingredient) => ({
+      ...ingredient,
+      name: CHEESE_NAME_REPLACEMENTS[ingredient.name] ?? ingredient.name
+    })),
+    instructions: recipe.instructions?.map((instruction) =>
+      instruction.replace(/vegetarian (?:Italian-style )?hard cheese/gi, 'Parmesan')
+    )
+  }
+}
 
 export function migrateRecipeCatalog(state: AppState): AppState {
   if ((state.catalogVersion ?? 0) >= CATALOG_VERSION) return state
@@ -1267,7 +1290,7 @@ export function migrateRecipeCatalog(state: AppState): AppState {
     ...retainedRecipes.map((recipe) => {
       const starter = starters.get(recipe.id)
       if (starter && REFRESHED_RECIPE_IDS.has(recipe.id)) return starter
-      return {
+      return normalizeCheeseNames({
         ...recipe,
         collection: GARDEN_RECIPE_IDS.has(recipe.id) ? 'garden-harvest' : recipe.collection ?? starter?.collection ?? 'explore' as const,
         tags: recipe.tags ?? starter?.tags ?? [],
@@ -1276,7 +1299,7 @@ export function migrateRecipeCatalog(state: AppState): AppState {
         timeCategory: recipe.id === 'overnight-oats' ? starter?.timeCategory : recipe.timeCategory ?? starter?.timeCategory,
         nutritionPerServing: recipe.nutritionPerServing ?? starter?.nutritionPerServing,
         instructions: recipe.instructions?.length ? recipe.instructions : starter?.instructions
-      }
+      })
     }),
     ...starterRecipes.filter((recipe) => !known.has(recipe.id))
   ]

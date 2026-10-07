@@ -222,6 +222,30 @@ describe('recipe catalog metadata', () => {
     expect(migrated).toMatchObject({ name: 'Our zucchini soup', collection: 'garden-harvest' })
   })
 
+  it('removes vegetarian qualifiers from cheese names in existing recipes', () => {
+    const recipe: Recipe = {
+      id: 'legacy-cheese-recipe',
+      name: 'Legacy cheese recipe',
+      emoji: '🧀',
+      description: 'Made with vegetarian hard cheese and feta.',
+      servings: 2,
+      ingredients: [
+        { id: 'hard-cheese', name: 'Vegetarian Italian-style hard cheese', quantity: 50, unit: 'g', category: 'Dairy & eggs' },
+        { id: 'feta', name: 'Vegetarian feta', quantity: 100, unit: 'g', category: 'Dairy & eggs' }
+      ],
+      instructions: ['Finish with grated vegetarian hard cheese.']
+    }
+    const state: AppState = {
+      recipes: [recipe], plan: [], shoppingList: [], weekStart: '2026-09-28',
+      updatedAt: '2026-10-06T12:00:00.000Z', catalogVersion: 24
+    }
+
+    const migrated = migrateRecipeCatalog(state).recipes.find((candidate) => candidate.id === recipe.id)!
+    expect(migrated.description).toBe('Made with Parmesan and feta.')
+    expect(migrated.ingredients.map((ingredient) => ingredient.name)).toEqual(['Parmesan', 'Feta'])
+    expect(migrated.instructions).toEqual(['Finish with grated Parmesan.'])
+  })
+
   it('retires non-vegetarian recipes and removes them from the plan', () => {
     const retired: Recipe = { id: 'salmon', name: 'Miso salmon bowls', emoji: '🍚', description: '', servings: 4, ingredients: [] }
     const state: AppState = {
