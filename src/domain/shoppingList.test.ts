@@ -51,7 +51,7 @@ describe('buildShoppingList', () => {
     expect(list[0]).toMatchObject({ name: 'Rice', quantity: 3, unit: 'cup' })
   })
 
-  it('does not add optional ingredients to the generated list', () => {
+  it('adds scaled optional ingredients as bonus items', () => {
     const flexibleMeal: Recipe = {
       id: 'flexible', name: 'Flexible meal', emoji: '🥪', description: '', servings: 2,
       ingredients: [
@@ -59,9 +59,30 @@ describe('buildShoppingList', () => {
         ingredient('tomato', 'Tomato', 2, 'piece', 'Vegetables', true)
       ]
     }
-    const list = buildShoppingList([flexibleMeal], [{ id: 'p1', recipeId: 'flexible', servings: 2 }])
+    const list = buildShoppingList([flexibleMeal], [{ id: 'p1', recipeId: 'flexible', servings: 4 }])
+
+    expect(list).toHaveLength(2)
+    expect(list.find((item) => item.name === 'Bread rolls')).toMatchObject({ quantity: 8 })
+    expect(list.find((item) => item.name === 'Bread rolls')?.optional).toBeUndefined()
+    expect(list.find((item) => item.name === 'Tomato')).toMatchObject({ quantity: 4, optional: true })
+  })
+
+  it('treats a combined ingredient as essential when any recipe requires it', () => {
+    const optionalTomato: Recipe = {
+      id: 'optional', name: 'Optional tomato', emoji: '🥪', description: '', servings: 2,
+      ingredients: [ingredient('optional-tomato', 'Tomato', 1, 'piece', 'Vegetables', true)]
+    }
+    const requiredTomato: Recipe = {
+      id: 'required', name: 'Required tomato', emoji: '🥗', description: '', servings: 2,
+      ingredients: [ingredient('required-tomato', 'tomato', 2, 'piece', 'Vegetables')]
+    }
+
+    const list = buildShoppingList(
+      [optionalTomato, requiredTomato],
+      [{ id: 'p1', recipeId: 'optional', servings: 2 }, { id: 'p2', recipeId: 'required', servings: 2 }]
+    )
 
     expect(list).toHaveLength(1)
-    expect(list[0]).toMatchObject({ name: 'Bread rolls', quantity: 4 })
+    expect(list[0]).toMatchObject({ quantity: 3, optional: false, sources: ['Optional tomato', 'Required tomato'] })
   })
 })

@@ -10,7 +10,7 @@ describe('recipe catalog metadata', () => {
       expect(recipe.description.trim(), recipe.name).not.toBe('')
       expect(recipe.servings, recipe.name).toBeGreaterThan(0)
       expect(recipe.ingredients.length, recipe.name).toBeGreaterThan(0)
-      expect(recipe.collection, recipe.name).toMatch(/^(old-faithful|explore)$/)
+      expect(recipe.collection, recipe.name).toMatch(/^(old-faithful|garden-harvest|explore)$/)
       expect(recipe.tags?.length, recipe.name).toBeGreaterThan(0)
       expect(['healthy', 'balanced', 'indulgent'], recipe.name).toContain(recipe.healthiness)
       expect(recipe.nutritionPerServing, recipe.name).toMatchObject({ estimated: true })
@@ -34,13 +34,116 @@ describe('recipe catalog metadata', () => {
 
   it('keeps the catalog vegetarian and the trusted recipes in Old Faithful', () => {
     expect(starterRecipes.some((recipe) => recipe.ingredients.some((item) => item.category === 'Meat & fish'))).toBe(false)
-    expect(starterRecipes.filter((recipe) => recipe.collection === 'old-faithful').map((recipe) => recipe.id)).toEqual(['kidney-bean-cheeseburgers', 'brotchen-with-cheese', 'overnight-oats'])
+    expect(starterRecipes.filter((recipe) => recipe.collection === 'old-faithful').map((recipe) => recipe.id)).toEqual([
+      'kidney-bean-cheeseburgers', 'brotchen-with-cheese', 'overnight-oats', 'banana-bread',
+      'fudgy-brownies', 'andis-potatoes', 'andis-corn', 'chocolate-zucchini-bread',
+      'baked-mushroom-brown-rice-risotto', 'vegetarian-caesar-wraps', 'thai-red-curry',
+      'sesame-garlic-ramen', 'flaky-biscuits', 'creamy-plant-based-bolognese',
+      'air-fryer-chocolate-chip-cookies', 'cowboy-caviar', 'couscous-feta-stuffed-peppers',
+      'sweet-potato-avocado-hash', 'vegetarian-burritos', 'vegetable-paella-smoked-tofu',
+      'plant-based-mince-tacos', 'like-chicken-guacamole-wraps', 'tomato-risotto',
+      'italian-pasta-salad', 'kisir-bulgur-salad', 'classic-zucchini-fritters',
+      'creamy-pumpkin-pasta'
+    ])
+    expect(starterRecipes.filter((recipe) => recipe.collection === 'garden-harvest').map((recipe) => recipe.id)).toEqual([
+      'creamy-zucchini-soup', 'coconut-ginger-pumpkin-soup', 'schmorgurken-with-potatoes',
+      'mangold-chickpea-curry', 'garden-tomato-salad', 'garden-green-bean-salad'
+    ])
+  })
+
+  it('scales the vegetarian burrito staples for the shopping list', () => {
+    const recipe = starterRecipes.find((candidate) => candidate.id === 'vegetarian-burritos')!
+    const list = buildShoppingList([recipe], [{ id: 'planned-burritos', recipeId: recipe.id, servings: 2 }])
+
+    expect(list.find((item) => item.name === 'Large flour tortillas')).toMatchObject({ quantity: 2, unit: 'piece' })
+    expect(list.find((item) => item.name === 'Long-grain rice')).toMatchObject({ quantity: 80, unit: 'g' })
+    expect(list.find((item) => item.name === 'Fake meat')).toMatchObject({ quantity: 125, unit: 'g' })
+    expect(list.find((item) => item.name === 'Avocados')).toMatchObject({ quantity: 1, unit: 'piece' })
+  })
+
+  it('scales both soup recipes with practical shopping units', () => {
+    const zucchiniSoup = starterRecipes.find((candidate) => candidate.id === 'creamy-zucchini-soup')!
+    const pumpkinSoup = starterRecipes.find((candidate) => candidate.id === 'coconut-ginger-pumpkin-soup')!
+    const list = buildShoppingList(
+      [zucchiniSoup, pumpkinSoup],
+      [
+        { id: 'planned-zucchini-soup', recipeId: zucchiniSoup.id, servings: 2 },
+        { id: 'planned-pumpkin-soup', recipeId: pumpkinSoup.id, servings: 4 }
+      ]
+    )
+
+    expect(list.find((item) => item.name === 'Zucchini')).toMatchObject({ quantity: 2, unit: 'piece' })
+    expect(list.find((item) => item.name === 'Hokkaido pumpkin')).toMatchObject({ quantity: 1, unit: 'piece' })
+    expect(list.find((item) => item.name === 'Coconut milk (400 ml can)')).toMatchObject({ quantity: 1, unit: 'pack' })
+    expect(list.find((item) => item.name === 'Fresh ginger')).toMatchObject({ quantity: 30, unit: 'g' })
+  })
+
+  it('keeps smoked tofu optional for Schmorgurken and scales the Mangold curry', () => {
+    const schmorgurken = starterRecipes.find((candidate) => candidate.id === 'schmorgurken-with-potatoes')!
+    const mangoldCurry = starterRecipes.find((candidate) => candidate.id === 'mangold-chickpea-curry')!
+    const list = buildShoppingList(
+      [schmorgurken, mangoldCurry],
+      [
+        { id: 'planned-schmorgurken', recipeId: schmorgurken.id, servings: 4 },
+        { id: 'planned-mangold', recipeId: mangoldCurry.id, servings: 1.5 }
+      ]
+    )
+
+    expect(schmorgurken.ingredients.find((item) => item.name === 'Smoked tofu')).toMatchObject({ optional: true })
+    expect(list.find((item) => item.name === 'Smoked tofu')).toMatchObject({ quantity: 250, unit: 'g', optional: true })
+    expect(list.find((item) => item.name === 'Mangold')).toMatchObject({ quantity: 250, unit: 'g' })
+    expect(list.find((item) => item.name === 'Coconut milk (400 ml can)')).toMatchObject({ quantity: 0.5, unit: 'pack' })
+  })
+
+  it('adds garden salads with practical produce quantities and only fresh green beans', () => {
+    const tomatoSalad = starterRecipes.find((candidate) => candidate.id === 'garden-tomato-salad')!
+    const beanSalad = starterRecipes.find((candidate) => candidate.id === 'garden-green-bean-salad')!
+    const list = buildShoppingList(
+      [tomatoSalad, beanSalad],
+      [
+        { id: 'planned-tomato-salad', recipeId: tomatoSalad.id, servings: 2 },
+        { id: 'planned-bean-salad', recipeId: beanSalad.id, servings: 2 }
+      ]
+    )
+
+    expect(list.find((item) => item.name === 'Tomatoes')).toMatchObject({ quantity: 400, unit: 'g' })
+    expect(list.find((item) => item.name === 'Fresh green beans')).toMatchObject({ quantity: 400, unit: 'g' })
+    expect(beanSalad.ingredients.filter((item) => /bean/i.test(item.name)).map((item) => item.name)).toEqual(['Fresh green beans'])
+    expect(beanSalad.ingredients.some((item) => item.category === 'Canned goods')).toBe(false)
+  })
+
+  it('uses generous, scalable amounts of garden zucchini and pumpkin', () => {
+    const fritters = starterRecipes.find((candidate) => candidate.id === 'classic-zucchini-fritters')!
+    const pumpkinPasta = starterRecipes.find((candidate) => candidate.id === 'creamy-pumpkin-pasta')!
+    const list = buildShoppingList(
+      [fritters, pumpkinPasta],
+      [
+        { id: 'planned-fritters', recipeId: fritters.id, servings: 2 },
+        { id: 'planned-pumpkin-pasta', recipeId: pumpkinPasta.id, servings: 2 }
+      ]
+    )
+
+    expect(list.find((item) => item.name === 'Zucchini')).toMatchObject({ quantity: 500, unit: 'g' })
+    expect(list.find((item) => item.name === 'Pumpkin flesh')).toMatchObject({ quantity: 400, unit: 'g' })
+    expect(list.find((item) => item.name === 'Pasta')).toMatchObject({ quantity: 175, unit: 'g' })
   })
 
   it('marks the Brötchen accompaniments as optional', () => {
     const recipe = starterRecipes.find((candidate) => candidate.id === 'brotchen-with-cheese')
     expect(recipe?.ingredients.filter((item) => !item.optional).map((item) => item.name)).toEqual(['Brötchen', 'Sliced cheese'])
     expect(recipe?.ingredients.filter((item) => item.optional).map((item) => item.name)).toEqual(['Cucumber', 'Tomatoes', 'Grapes'])
+  })
+
+  it('keeps mashed potatoes simple and marks creamy extras as optional in the shopping list', () => {
+    const recipe = starterRecipes.find((candidate) => candidate.id === 'andis-potatoes')!
+    expect(recipe.name).toBe('Mashed potatoes')
+    expect(recipe.ingredients.filter((item) => !item.optional).map((item) => item.name)).toEqual(['Potatoes', 'Milk', 'Butter', 'Salt'])
+    expect(recipe.ingredients.filter((item) => item.optional).map((item) => item.name)).toEqual(['Cream cheese', 'Sour cream'])
+
+    const list = buildShoppingList([recipe], [{ id: 'planned-mash', recipeId: recipe.id, servings: 2 }])
+    expect(list.find((item) => item.name === 'Potatoes')).toMatchObject({ quantity: 450, unit: 'g' })
+    expect(list.find((item) => item.name === 'Cream cheese')).toMatchObject({ quantity: 50, unit: 'g', optional: true })
+    expect(list.find((item) => item.name === 'Sour cream')).toMatchObject({ quantity: 50, unit: 'g', optional: true })
   })
 
   it('adds the flexible fruit item from overnight oats to the shopping list', () => {
@@ -105,6 +208,18 @@ describe('recipe catalog metadata', () => {
     expect(migrated.recipes.find((recipe) => recipe.id === legacyStarter.id)?.totalTimeMinutes).toBeGreaterThan(0)
     expect(migrated.recipes.find((recipe) => recipe.id === 'custom')).toMatchObject({ tags: [], healthiness: 'balanced' })
     expect(migrated.recipes.find((recipe) => recipe.id === 'custom')?.collection).toBe('explore')
+  })
+
+  it('moves existing home-garden recipes without replacing user edits', () => {
+    const zucchiniSoup = starterRecipes.find((candidate) => candidate.id === 'creamy-zucchini-soup')!
+    const state: AppState = {
+      recipes: [{ ...zucchiniSoup, name: 'Our zucchini soup', collection: 'old-faithful' }],
+      plan: [], shoppingList: [], weekStart: '2026-09-28',
+      updatedAt: '2026-10-05T12:00:00.000Z', catalogVersion: 23
+    }
+
+    const migrated = migrateRecipeCatalog(state).recipes.find((recipe) => recipe.id === zucchiniSoup.id)!
+    expect(migrated).toMatchObject({ name: 'Our zucchini soup', collection: 'garden-harvest' })
   })
 
   it('retires non-vegetarian recipes and removes them from the plan', () => {

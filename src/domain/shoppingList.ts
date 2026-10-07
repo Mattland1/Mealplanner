@@ -44,12 +44,12 @@ export function buildShoppingList(
     if (!recipe) continue
     const multiplier = meal.servings / recipe.servings
     for (const ingredient of recipe.ingredients) {
-      if (ingredient.optional) continue
       const base = toBase(ingredient.quantity * multiplier, ingredient.unit)
       const key = `${canonicalName(ingredient.name)}:${unitFamily[ingredient.unit]}`
       const existing = accumulated.get(key)
       if (existing) {
         existing.quantity += base.quantity
+        existing.optional = Boolean(existing.optional && ingredient.optional)
         if (!existing.sources.includes(recipe.name)) existing.sources.push(recipe.name)
       } else {
         accumulated.set(key, {
